@@ -1,6 +1,6 @@
 # PRODUCT REQUIREMENT DOCUMENT (PRD)
 
-## CowVision: Sistem Prediksi Siklus Laktasi Sapi dan Deteksi Penyakit Mastitis Berbasis Android Mobile dengan YOLO & ANN
+## CowVision: Sistem Prediksi Siklus Laktasi Sapi dan Deteksi Penyakit Mastitis Berbasis Web dengan YOLO & CNN dan XGBoost
 
 ---
 
@@ -9,13 +9,13 @@
 | Parameter | Detail |
 | :--- | :--- |
 | **Nama Produk** | CowVision |
-| **Tipe Produk** | Aplikasi Mobile (Android) & AI Cloud Backend |
+| **Tipe Produk** | Aplikasi Web & AI Cloud Backend |
 | **Versi Dokumen** | 1.0.0 |
 | **Status** | Approved / Baseline |
 | **Project Sponsor** | Pak Hafid (Karyawan Sapi Perah Rembangan Dairy Farm) |
 | **Lokasi Mitra** | Rembangan Dairy Farm, Jl. Rembangan, Darungan, Kemuning Lor, Kec. Arjasa, Jember |
 | **Institusi** | Program Studi Informatika, Fasilkom, Universitas Jember |
-| **Tim Penyusun** | - Yurissandy Al Aham Pratama (242410103083)<br>- Kaysa Rafa Aditya Putra Negara (242410103022)<br>- Achmad Nuhan T (242410103011)<br>- Erga Pratama (242410103079) |
+| **Tim Penyusun** | - Yurissandy Al Aham Pratama (242410103083)<br>- Kaysa Rafa Aditya Putra Negara (242410103022)<br>- Yuri Wicaksono (242410103034)<br>- Risky Puspita Indraswari  (242410103037) |
 
 ---
 
