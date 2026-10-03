@@ -1,4 +1,4 @@
-# Dependencies for CowVision AI Training (XGBoost & CNN)
+# Dependencies for MowTitis AI Training (XGBoost & CNN)
 numpy>=1.22.0
 pandas>=1.4.0
 scikit-learn>=1.1.0

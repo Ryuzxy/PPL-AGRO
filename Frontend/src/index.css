@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --bg-app: #f9f9ff;
+  --text-primary: #111c2d;
+  --text-secondary: #41493e;
+  --color-green-dark: #00450d;
+  --color-green-teal: #006b5f;
+  --color-accent-teal: #8df5e4;
+  --color-warning-bg: #ffdbcf;
+  --color-warning-text: #802a00;
+  --color-warning-dark: #6c2200;
+  --color-card-bg: #ffffff;
+  --color-blue-tint: #e7eeff;
+  --color-blue-pill: #f0f3ff;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: #f0f4f9;
+  color: var(--text-primary);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+/* YOLO v26 Scanner Animations */
+@keyframes laser-sweep {
+  0% { top: 5%; opacity: 0.85; }
+  50% { top: 92%; opacity: 1; }
+  100% { top: 5%; opacity: 0.85; }
+}
+
+.animate-laser-sweep {
+  animation: laser-sweep 2.6s ease-in-out infinite;
+}
+
+@keyframes reticle-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(1.025); opacity: 0.65; }
+}
+
+.animate-reticle-pulse {
+  animation: reticle-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes flash-shutter {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+.animate-flash-shutter {
+  animation: flash-shutter 0.35s ease-out forwards;
+}
