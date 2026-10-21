@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ScreenType } from '../App.tsx';
+import { supabase } from '../lib/supabase';
 
 interface CatatPengobatanMastitisProps {
   onNavigate?: (screen: ScreenType) => void;
@@ -56,7 +57,7 @@ export default function CatatPengobatanMastitis({
     setTimeout(() => setToastMsg(null), 2500);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (completedCount < 4) {
       showToast('Harap selesaikan seluruh 4 langkah SOP terlebih dahulu!');
@@ -64,10 +65,32 @@ export default function CatatPengobatanMastitis({
     }
     setIsSubmitting(true);
     showToast(`Dosis Tube ${selectedDose}/3 berhasil disimpan ke Rekam Medis Sapi #${cowTag}!`);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      onNavigate?.('profil_sapi');
-    }, 1200);
+
+    try {
+      const cowNum = parseInt(cowTag, 10) || 1;
+      // Record medical expense into pengeluaran table
+      await supabase.from('pengeluaran').insert([{
+        jumlah: 68000,
+        kategori: 'Medis Karantina',
+        keterangan: `Salep Intramamari Mastitis Tube #${selectedDose} (Sapi #${cowTag} ${cowName}) - ${medicine}`,
+        sapi_id: cowNum,
+        tanggal: new Date().toISOString().split('T')[0],
+      }]);
+
+      // Update sapi health status and notes in sapi table
+      await supabase.from('sapi').update({
+        catatan: `Terapi intramamari tube ${selectedDose}/3 (${operator}): ${activeChips.join(', ')}. ${vetNotes}`,
+        status_kesehatan: selectedDose >= 3 ? 'Pasca Terapi (Sembuh)' : 'Dalam Terapi Karantina',
+        updated_at: new Date().toISOString(),
+      }).eq('id', cowNum);
+    } catch (err) {
+      console.warn('Supabase medical log error:', err);
+    } finally {
+      setTimeout(() => {
+        setIsSubmitting(false);
+        onNavigate?.('profil_sapi');
+      }, 1200);
+    }
   };
 
   return (

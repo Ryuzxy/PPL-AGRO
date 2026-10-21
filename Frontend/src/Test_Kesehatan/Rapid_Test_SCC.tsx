@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ScreenType } from '../App.tsx';
+import { supabase } from '../lib/supabase';
 
 interface RapidTestSCCProps {
   onNavigate?: (screen: ScreenType) => void;
@@ -14,8 +15,18 @@ export default function RapidTestSCC({ onNavigate }: RapidTestSCCProps) {
     setTimeout(() => setToastMessage(null), 2800);
   };
 
-  const handleConfirmRelease = () => {
+  const handleConfirmRelease = async () => {
     setReleased(true);
+    showToast('Memperbarui status kesehatan Sapi Mawar di Supabase...');
+    try {
+      await supabase.from('sapi').update({
+        status_kesehatan: 'Sehat',
+        fase_laktasi: 'Laktasi',
+        catatan: 'Karantina selesai & tuntas bebas residu. Resmi kembali ke Kandang Laktasi A.'
+      }).eq('nama', 'Mawar');
+    } catch (e) {
+      console.warn('Gagal update status sapi di Supabase:', e);
+    }
     showToast('Pelepasan resmi dikonfirmasi! Sapi Mawar dipindahkan ke Kandang A.');
     setTimeout(() => {
       onNavigate?.('profil_sapi');

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useCows } from '../hooks/useSupabaseData';
 
 interface Props {
   onNavigate?: (screen: string) => void;
@@ -35,8 +36,8 @@ const cowDatabase: Record<string, CowData> = {
     weight: '485 kg',
     yesterdayMilk: '21.4 L',
     warning: {
-      title: 'Perlu Scan Mastitis (Jadwal Sore Ini)',
-      desc: 'Pemeriksaan ambing kuadran kiri-belakang terindikasi pembengkakan ringan pada pemerahan pagi.',
+      title: 'Perlu Cek Radang Susu (Sore Ini)',
+      desc: 'Puting belakang kiri agak bengkak saat perah pagi tadi.',
     },
     image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAfrE1eDrWFkuHXMJa7twfmYy1OPpAX1dzP-O19Etd7D-c_5uHjzzlihyuYyTpx2DyOdey9FKCUp2VVAVbb9wrRYGd14wsPReEvb_th7N3cQf8qk2QIeKLdDAkxEHIniUsKaU6nG-zxJs8s64FFgpa9ofwvPW0RWhfK8G4AEdKIQ9TvpuqdGQji1MWXWXsAET-MGsV_XEm4lyWSE9e_NZT5QqI2oOeB0wrLv5Tow3jmmpnP7h4anQHC',
   },
@@ -83,14 +84,42 @@ const cowDatabase: Record<string, CowData> = {
 
 export const KetikManualEartag: React.FC<Props> = ({ onNavigate }) => {
   const [eartag, setEartag] = useState('360-001928472910');
+  const { cows } = useCows();
 
-  // Find match or default to Melati if contains 12 or 928472910
-  const matchedCow: CowData | undefined =
-    cowDatabase[eartag] ||
-    (eartag.includes('12') || eartag.includes('910') ? cowDatabase['360-001928472910'] : undefined) ||
-    (eartag.includes('07') || eartag.includes('907') ? cowDatabase['360-001928472907'] : undefined) ||
-    (eartag.includes('18') || eartag.includes('918') ? cowDatabase['360-001928472918'] : undefined) ||
-    (eartag.includes('04') || eartag.includes('904') ? cowDatabase['360-001928472904'] : undefined);
+  // Find match from Supabase cows first, then fallback to database
+  const cleanTag = eartag.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  const supabaseMatch = cows.find(c => {
+    const cId = c.id.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const cRfid = c.rfid.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const cName = c.name.toLowerCase();
+    return (cleanTag.length > 0 && (cId.includes(cleanTag) || cRfid.includes(cleanTag) || cName.includes(cleanTag)));
+  });
+
+  const matchedCow: CowData | undefined = supabaseMatch
+    ? {
+        id: supabaseMatch.id,
+        name: `${supabaseMatch.name} (${supabaseMatch.id})`,
+        breed: supabaseMatch.breed,
+        gender: 'Betina',
+        age: `${supabaseMatch.age || 3.5} Th`,
+        lactation: `Laktasi (${supabaseMatch.statusLabel})`,
+        rfid: supabaseMatch.rfid,
+        stall: supabaseMatch.stall || 'Kandang Laktasi A',
+        weight: `${supabaseMatch.weight} kg`,
+        yesterdayMilk: `${supabaseMatch.milkYield} L`,
+        image: supabaseMatch.photoUrl,
+        warning: !supabaseMatch.isHealthy
+          ? {
+              title: 'Perlu Cek Radang Susu',
+              desc: `Kondisi ambing: ${supabaseMatch.cnnStatus}`,
+            }
+          : undefined,
+      }
+    : cowDatabase[eartag] ||
+      (eartag.includes('12') || eartag.includes('910') ? cowDatabase['360-001928472910'] : undefined) ||
+      (eartag.includes('07') || eartag.includes('907') ? cowDatabase['360-001928472907'] : undefined) ||
+      (eartag.includes('18') || eartag.includes('918') ? cowDatabase['360-001928472918'] : undefined) ||
+      (eartag.includes('04') || eartag.includes('904') ? cowDatabase['360-001928472904'] : undefined);
 
   const handleKeyPress = (val: string) => {
     if (eartag === '—' || eartag === '') {
@@ -109,6 +138,25 @@ export const KetikManualEartag: React.FC<Props> = ({ onNavigate }) => {
 
   const handleClear = () => {
     setEartag('—');
+  };
+
+  const handleSelectMatchedCow = () => {
+    if (matchedCow) {
+      try {
+        localStorage.setItem('mowtitis_selected_cow', JSON.stringify({
+          id: matchedCow.id.replace('#', ''),
+          name: matchedCow.name.replace(/\s*\(.*\)/, '').trim(),
+          rfid: matchedCow.rfid,
+          stall: matchedCow.stall,
+          breed: matchedCow.breed,
+          dim: 42,
+          status: 'Perlu Cek Ambing'
+        }));
+      } catch (e) {
+        console.warn('Gagal menyimpan sapi:', e);
+      }
+    }
+    onNavigate?.('deteksi');
   };
 
   return (
@@ -158,27 +206,27 @@ export const KetikManualEartag: React.FC<Props> = ({ onNavigate }) => {
               className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full bg-[#e7eeff] text-[#111c2d] hover:bg-[#dee8ff] transition-colors"
             >
               <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-              <span className="text-xs font-bold">Scanner RFID</span>
+              <span className="text-xs font-bold">Pindai Eartag</span>
             </button>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#8df5e4]/40 text-[#007165]">
               <span className="w-2 h-2 rounded-full bg-[#006b5f] animate-pulse"></span>
-              <span className="text-[11px] font-extrabold uppercase tracking-wider">Input Manual Siaga</span>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider">Ketik Manual Siaga</span>
             </div>
           </div>
 
           <div className="mb-4">
             <h1 className="text-xl md:text-2xl font-bold text-[#111c2d]">Ketik No. Eartag</h1>
-            <p className="text-xs font-medium text-[#41493e]">Rembangan Dairy Farm • Database 35 Ekor Terverifikasi</p>
+            <p className="text-xs font-medium text-[#41493e]">Rembangan Dairy Farm • 35 Sapi Terdaftar</p>
           </div>
 
           {/* Input Display Card */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#dee8ff]/50 mb-4">
             <div className="flex items-center justify-between mb-2">
               <label className="text-[11px] font-extrabold text-[#41493e] uppercase tracking-wider">
-                Nomor Eartag atau ID Ternak
+                Nomor Telinga (Eartag) atau Nomor Sapi
               </label>
               <span className="text-[11px] font-bold text-[#006b5f] flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]">tune</span> ISO 11784/85
+                <span className="material-symbols-outlined text-[14px]">sell</span> Nomor Sapi
               </span>
             </div>
 
@@ -199,43 +247,31 @@ export const KetikManualEartag: React.FC<Props> = ({ onNavigate }) => {
 
             {/* Quick Preset Chips */}
             <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none">
-              <button
-                onClick={() => setEartag('360-001928472910')}
-                className={`whitespace-nowrap px-3 py-1.5 rounded-full font-bold text-xs transition-transform active:scale-95 flex items-center gap-1 ${
-                  eartag === '360-001928472910'
-                    ? 'bg-[#1b5e20] text-[#acf4a4]'
-                    : 'bg-[#e7eeff] text-[#41493e] hover:bg-[#dee8ff]'
-                }`}
-              >
-                {eartag === '360-001928472910' && (
-                  <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                )}
-                Allflex (360-xxx)
-              </button>
-
-              <button
-                onClick={() => setEartag('360-001928472910')}
-                className="whitespace-nowrap px-3 py-1.5 rounded-full bg-[#e7eeff] text-[#41493e] hover:bg-[#dee8ff] font-bold text-xs active:scale-95 transition-transform"
-              >
-                ID #12 (Melati)
-              </button>
-
-              <button
-                onClick={() => {
-                  setEartag('360-001928472907');
-                  onNavigate?.('ketik_eartag_sapi07');
-                }}
-                className="whitespace-nowrap px-3 py-1.5 rounded-full bg-[#e7eeff] text-[#41493e] hover:bg-[#dee8ff] font-bold text-xs active:scale-95 transition-transform"
-              >
-                ID #07 (Cantik)
-              </button>
-
-              <button
-                onClick={() => setEartag('360-001928472910')}
-                className="whitespace-nowrap px-3 py-1.5 rounded-full bg-[#e7eeff] text-[#41493e] hover:bg-[#dee8ff] font-bold text-xs active:scale-95 transition-transform"
-              >
-                Stall 14 (Line Sore)
-              </button>
+              {cows.length > 0 ? (
+                cows.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setEartag(c.rfid)}
+                    className={`whitespace-nowrap px-3 py-1.5 rounded-full font-bold text-xs transition-transform active:scale-95 flex items-center gap-1 cursor-pointer shrink-0 ${
+                      eartag === c.rfid
+                        ? 'bg-[#1b5e20] text-[#acf4a4]'
+                        : 'bg-[#e7eeff] text-[#41493e] hover:bg-[#dee8ff]'
+                    }`}
+                  >
+                    {eartag === c.rfid && (
+                      <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                    )}
+                    {c.id} ({c.name})
+                  </button>
+                ))
+              ) : (
+                <button
+                  onClick={() => setEartag('360-001928472910')}
+                  className="whitespace-nowrap px-3 py-1.5 rounded-full bg-[#1b5e20] text-[#acf4a4] font-bold text-xs"
+                >
+                  ID #12 (Melati)
+                </button>
+              )}
             </div>
           </div>
 
@@ -245,7 +281,7 @@ export const KetikManualEartag: React.FC<Props> = ({ onNavigate }) => {
               <div className="flex items-center justify-between">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#acf4a4] text-[#002203]">
                   <span className="material-symbols-outlined text-[16px] text-[#00450d]">verified</span>
-                  <span className="text-[11px] font-extrabold">1 Ternak Ditemukan Cocok (100% Match)</span>
+                  <span className="text-[11px] font-extrabold">Data Sapi Ditemukan Cocok</span>
                 </div>
                 <span className="text-[11px] font-bold text-[#41493e]">Line Sore A</span>
               </div>
@@ -310,11 +346,11 @@ export const KetikManualEartag: React.FC<Props> = ({ onNavigate }) => {
                   </div>
 
                   <button
-                    onClick={() => onNavigate?.('deteksi_mastitis_cnn_inspeksi')}
+                    onClick={handleSelectMatchedCow}
                     className="w-full py-3.5 px-4 rounded-full bg-[#1b5e20] text-white font-bold text-sm shadow-md hover:bg-[#00450d] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-[20px]">photo_camera</span>
-                    <span>Pilih Sapi Ini & Buka Kamera YOLO v26</span>
+                    <span>Pilih Sapi Ini & Buka Kamera</span>
                     <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                   </button>
                 </div>
@@ -334,9 +370,9 @@ export const KetikManualEartag: React.FC<Props> = ({ onNavigate }) => {
           <div className="flex flex-col gap-2 mb-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold text-[#41493e] uppercase tracking-wider">
-                Pencarian Prioritas Sore Ini
+                Sapi yang Perlu Dicek
               </span>
-              <span className="text-[11px] font-bold text-[#006b5f]">Jadwal Perah 15:30</span>
+              <span className="text-[11px] font-bold text-[#006b5f]">Jadwal Perah Sore</span>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
@@ -459,21 +495,21 @@ export const KetikManualEartag: React.FC<Props> = ({ onNavigate }) => {
             className="flex flex-col items-center justify-center gap-1 text-[#00450d]"
           >
             <span className="material-symbols-outlined text-[22px] font-variation-fill">sensors</span>
-            <span className="text-[10px] font-extrabold">RFID & AI</span>
+            <span className="text-[10px] font-extrabold">Cek Sapi</span>
           </button>
           <button
             onClick={() => onNavigate?.('prediksi_laktasi_sapi07')}
             className="flex flex-col items-center justify-center gap-1 text-[#41493e] hover:text-[#00450d] transition-colors"
           >
             <span className="material-symbols-outlined text-[22px]">psychology</span>
-            <span className="text-[10px] font-bold">Nutrisi</span>
+            <span className="text-[10px] font-bold">Pakan</span>
           </button>
           <button
             onClick={() => onNavigate?.('buku_kas')}
             className="flex flex-col items-center justify-center gap-1 text-[#41493e] hover:text-[#00450d] transition-colors"
           >
             <span className="material-symbols-outlined text-[22px]">payments</span>
-            <span className="text-[10px] font-bold">Kas Mikro</span>
+            <span className="text-[10px] font-bold">Uang Kas</span>
           </button>
         </div>
       </nav>

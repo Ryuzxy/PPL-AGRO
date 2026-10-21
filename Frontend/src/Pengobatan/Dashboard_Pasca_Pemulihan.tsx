@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ScreenType } from '../App.tsx';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
+import { useCows, useMilkTelemetry } from '../hooks/useSupabaseData';
 
 interface DashboardPascaPemulihanProps {
   onNavigate?: (screen: ScreenType) => void;
@@ -8,6 +9,14 @@ interface DashboardPascaPemulihanProps {
 
 export default function DashboardPascaPemulihan({ onNavigate }: DashboardPascaPemulihanProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { cows } = useCows();
+  const { totalToday } = useMilkTelemetry();
+
+  const totalLiters = totalToday > 0 ? totalToday : +(cows.reduce((sum, c) => sum + (c.milkYield || 0), 0)).toFixed(1);
+  const laktasi = cows.filter(c => c.status === 'Laktasi').length;
+  const bunting = cows.filter(c => c.status === 'Bunting').length;
+  const isolasi = cows.filter(c => !c.isHealthy).length;
+  const lainnya = Math.max(0, cows.length - laktasi - bunting - isolasi);
 
   return (
     <div className="bg-[#f9f9ff] font-['Plus_Jakarta_Sans',sans-serif] text-[#111c2d] min-h-screen antialiased flex flex-col lg:flex-row">
@@ -133,21 +142,21 @@ export default function DashboardPascaPemulihan({ onNavigate }: DashboardPascaPe
             </div>
 
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-extrabold text-[#111c2d] tracking-tight">121.7</span>
-              <span className="text-sm font-bold text-[#41493e]">/ 125 Liter</span>
+              <span className="text-3xl font-extrabold text-[#111c2d] tracking-tight">{totalLiters}</span>
+              <span className="text-sm font-bold text-[#41493e]">/ {(totalLiters * 1.05).toFixed(1)} Liter</span>
             </div>
 
             <div className="w-full bg-[#f0f3ff] h-2.5 rounded-full mt-1 overflow-hidden border border-[#dee8ff]">
-              <div className="bg-[#1b5e20] h-full rounded-full" style={{ width: '97.4%' }}></div>
+              <div className="bg-[#1b5e20] h-full rounded-full" style={{ width: '95%' }}></div>
             </div>
 
             <div className="mt-2 pt-2 border-t border-[#dee8ff] flex items-center justify-between text-xs">
               <div className="flex items-center gap-1 text-[#41493e]">
                 <span className="material-symbols-outlined text-[16px] text-[#006b5f]">payments</span>
-                <span>Estimasi Omzet:</span>
+                <span>Estimasi Nilai Susu:</span>
               </div>
               <span className="font-extrabold text-[#00450d]">
-                Rp 1.703.800 <span className="font-normal text-[#41493e]">(@14k/L)</span>
+                Rp {Math.round(totalLiters * 7000).toLocaleString('id-ID')} <span className="font-normal text-[#41493e]">(@7k/L KUD)</span>
               </span>
             </div>
           </div>
@@ -161,25 +170,25 @@ export default function DashboardPascaPemulihan({ onNavigate }: DashboardPascaPe
                 </div>
                 <span className="text-xs font-bold text-[#111c2d]">Total Populasi Sapi</span>
               </div>
-              <span className="text-base font-extrabold text-[#00450d]">28 Ekor</span>
+              <span className="text-base font-extrabold text-[#00450d]">{cows.length} Ekor</span>
             </div>
 
             <div className="grid grid-cols-4 gap-2 mt-2">
               <div className="bg-[#f0f3ff] rounded-xl p-2.5 flex flex-col text-center border border-[#dee8ff]">
                 <span className="text-[10px] text-[#41493e] font-semibold">Laktasi</span>
-                <span className="text-base font-extrabold text-[#00450d] mt-0.5">9</span>
+                <span className="text-base font-extrabold text-[#00450d] mt-0.5">{laktasi}</span>
               </div>
               <div className="bg-[#f0f3ff] rounded-xl p-2.5 flex flex-col text-center border border-[#dee8ff]">
                 <span className="text-[10px] text-[#41493e] font-semibold">Bunting</span>
-                <span className="text-base font-extrabold text-[#006b5f] mt-0.5">4</span>
+                <span className="text-base font-extrabold text-[#006b5f] mt-0.5">{bunting}</span>
               </div>
               <div className="bg-[#f0f3ff] rounded-xl p-2.5 flex flex-col text-center border border-[#dee8ff]">
                 <span className="text-[10px] text-[#41493e] font-semibold">Isolasi</span>
-                <span className="text-base font-extrabold text-[#6c2200] mt-0.5">0</span>
+                <span className="text-base font-extrabold text-[#6c2200] mt-0.5">{isolasi}</span>
               </div>
               <div className="bg-[#f0f3ff] rounded-xl p-2.5 flex flex-col text-center border border-[#dee8ff]">
                 <span className="text-[10px] text-[#41493e] font-semibold">Dara/Kering</span>
-                <span className="text-base font-extrabold text-[#111c2d] mt-0.5">15</span>
+                <span className="text-base font-extrabold text-[#111c2d] mt-0.5">{lainnya}</span>
               </div>
             </div>
           </div>

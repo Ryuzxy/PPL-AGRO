@@ -14,114 +14,31 @@ export default function PilihSapiDeteksiCNN({ onNavigate }: PilihSapiDeteksiCNNP
   const [rfidActive, setRfidActive] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  const { cows: dbCows } = useCows();
+  const { cows: dbCows, loading: cowsLoading } = useCows();
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 2500);
   };
 
-  const defaultCows: UICow[] = [
-    {
-      id: '07',
-      dbId: 7,
-      number: '#07',
-      name: 'Cantik',
-      tag: 'Dara • B-05',
-      eartag: 'ID-ET-07-JKT',
-      stall: 'Stall B-05',
-      scheduleText: 'Jadwal Rutin Sore Ini',
-      healthStatus: '99.1% Sehat',
-      isHealthy: true,
-      metric1Label: 'Kondisi Terakhir',
-      metric1Val: 'Grade A (3 hari lalu)',
-      metric2Label: 'Target Ambing',
-      metric2Val: '4 Kuartir Simetris',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCSPOprSbV4tXxwlGCW9eZ8NXQ75ku0vyBtEWoqXuVW9GI-JUyx8b4nRo7bnOEIkiTOueP2KWJoXhaS6u2Dsk576BwSyDkRQRTz-Lt4csMW0FAUzLbDLuEkZKiUts5nR8AQEIqwI91zTSkt7VZZj5wmDqrotp-ygxtafrKezUz4T5SVD3vQwrpXeuLcqjQpsJPk5Iv6f4Glo4L_d7T-I4oL1Ero-Bpp-vGegCSWCUsyttFpJeh0DZXw',
-      kategori: 'kandang_b',
-      raw: {} as any
-    },
-    {
-      id: '18',
-      dbId: 18,
-      number: '#18',
-      name: 'Sekar',
-      tag: 'Laktasi 2 • H-110',
-      eartag: 'ID-ET-18-RMB',
-      stall: 'Line 04 Parlor A',
-      scheduleText: 'Evaluasi Kuartir Kiri Depan',
-      scheduleWarning: true,
-      healthStatus: '38.6°C Temp',
-      isHealthy: false,
-      metric1Label: 'CNN Confidence',
-      metric1Val: '97.4% Normal',
-      metric2Label: 'Status Jaringan Ambing',
-      metric2Val: 'Kemerahan Minor',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA7EvobBWcbpU-4fA6c4j0EMD7VO_6XweeX2EJKQ7KRcW2h3lCWAJ1Wt126zgRwG3Fw7JBawHHCv4rzm6XwnDAdK739UrxZQsN7i7Vjyn0Hb9IH8zZJjl9EwOMbtCFEL9FL5EVKscfSSdh4mCI2rnuO2ltQ8hxaHN3dCQGTEhMU4S6GMwNCFYgxgp8z5i_17ZjmMO6n0Cw4PfxH3FOM4eS4RpQkqNS-1No1hwpPEDk21dbYIFAw2NqJ',
-      kategori: 'perlu_cek',
-      raw: {} as any
-    },
-    {
-      id: '12',
-      dbId: 12,
-      number: '#12',
-      name: 'Melati',
-      tag: 'Laktasi 2 • H-94',
-      eartag: 'ID-ET-12-RMB',
-      stall: 'Stall A-14',
-      scheduleText: 'Jadwal Sore Ini (Prioritas)',
-      scheduleWarning: true,
-      healthStatus: 'Perlu Cek',
-      isHealthy: false,
-      metric1Label: 'Pembengkakan Ambing',
-      metric1Val: 'Kuadran Kiri-Belakang',
-      metric2Label: 'Produksi Terakhir',
-      metric2Val: '21.4 L / Hari',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAfrE1eDrWFkuHXMJa7twfmYy1OPpAX1dzP-O19Etd7D-c_5uHjzzlihyuYyTpx2DyOdey9FKCUp2VVAVbb9wrRYGd14wsPReEvb_th7N3cQf8qk2QIeKLdDAkxEHIniUsKaU6nG-zxJs8s64FFgpa9ofwvPW0RWhfK8G4AEdKIQ9TvpuqdGQji1MWXWXsAET-MGsV_XEm4lyWSE9e_NZT5QqI2oOeB0wrLv5Tow3jmmpnP7h4anQHC',
-      kategori: 'kandang_a',
-      raw: {} as any
-    },
-    {
-      id: '04',
-      dbId: 4,
-      number: '#04',
-      name: 'Mawar',
-      tag: 'Pasca Terapi Tube 3',
-      eartag: 'ID-ET-04-KRG',
-      stall: 'Kandang Laktasi A-04',
-      scheduleText: 'Evaluasi Pemulihan Total',
-      healthStatus: 'Grade A Sembuh',
-      isHealthy: true,
-      metric1Label: 'Hasil Rapid SCC',
-      metric1Val: '185.000 sel/mL (Negatif)',
-      metric2Label: 'Kuartir Kanan-Depan',
-      metric2Val: 'Tekstur Normal Kenyal',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDCn3kRgbAx07X77LMnuqcwbQC7BrG-fmY-mSukU217UIhHqJ3dLDWHrOAl2mbn6u7-hdo3MMuzWKdRzDRUvroVvZkstq_mT3OwIFVuR4bm67kfE2X5cVxoDGkklIOXdApAkboytBZ5HjMSTGireDwYVZdJ5MgkRC4OrheTKI43vlFt1v5K4D923Hm4T3r8MRZxlROIaTdyjRYY6ApXYOeQeQe6eiWyaoB8Hsv6tIcodjXzLRJM0pgU',
-      kategori: 'kandang_a',
-      raw: {} as any
-    },
-    {
-      id: '21',
-      dbId: 21,
-      number: '#21',
-      name: 'Kenanga',
-      tag: 'Dara Laktasi 1 • Baru',
-      eartag: 'ID-ET-21-RMB',
-      stall: 'Kandang B-02',
-      scheduleText: 'Baseline Ambing Perdana',
-      healthStatus: 'Belum Baseline',
-      isHealthy: true,
-      metric1Label: 'Status Baseline',
-      metric1Val: 'Perlu Foto Standar',
-      metric2Label: 'Bobot Badan',
-      metric2Val: '440 kg',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCSPOprSbV4tXxwlGCW9eZ8NXQ75ku0vyBtEWoqXuVW9GI-JUyx8b4nRo7bnOEIkiTOueP2KWJoXhaS6u2Dsk576BwSyDkRQRTz-Lt4csMW0FAUzLbDLuEkZKiUts5nR8AQEIqwI91zTSkt7VZZj5wmDqrotp-ygxtafrKezUz4T5SVD3vQwrpXeuLcqjQpsJPk5Iv6f4Glo4L_d7T-I4oL1Ero-Bpp-vGegCSWCUsyttFpJeh0DZXw',
-      kategori: 'kandang_b',
-      raw: {} as any
+  const handleSelectCow = (cow: UICow, screen: ScreenType = 'deteksi') => {
+    try {
+      localStorage.setItem('mowtitis_selected_cow', JSON.stringify({
+        id: cow.id,
+        name: cow.name,
+        rfid: cow.eartag,
+        stall: cow.stall,
+        breed: cow.raw.ras || 'Friesian Holstein',
+        dim: 142,
+        status: cow.healthStatus || 'Perlu Cek'
+      }));
+    } catch (e) {
+      console.warn('Gagal menyimpan sapi terpilih:', e);
     }
-  ];
+    onNavigate?.(screen);
+  };
 
-  const activeCows = dbCows.length > 0 ? dbCows : defaultCows;
+  const activeCows = dbCows;
 
   const filteredCows = activeCows.filter(cow => {
     const matchesSearch = 
@@ -209,13 +126,13 @@ export default function PilihSapiDeteksiCNN({ onNavigate }: PilihSapiDeteksiCNNP
             </button>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#dee8ff] text-[#111c2d]">
               <span className="w-2 h-2 rounded-full bg-[#00450d] animate-pulse"></span>
-              <span className="text-[11px] font-bold">Model CNN v4.2 Aktif</span>
+              <span className="text-[11px] font-bold">Kamera AI Aktif</span>
             </div>
           </div>
 
           <div className="mt-1">
             <h1 className="text-xl md:text-2xl font-extrabold text-[#111c2d] tracking-tight">
-              Deteksi Mastitis CNN
+              Pemeriksaan Ambing Sapi
             </h1>
             <p className="text-xs text-[#41493e]">
               Rembangan Dairy Farm • Arjasa, Jember
@@ -237,37 +154,37 @@ export default function PilihSapiDeteksiCNN({ onNavigate }: PilihSapiDeteksiCNNP
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-sm text-[#111c2d] truncate">Tap RFID Scanner</span>
+                    <span className="font-bold text-sm text-[#111c2d] truncate">Scan Kalung / Eartag Sapi</span>
                     <span className="bg-[#8df5e4] text-[#007165] px-1.5 py-0.5 rounded-full text-[10px] font-bold">
-                      {rfidActive ? 'SCANNING' : 'READY'}
+                      {rfidActive ? 'MEMINDAI' : 'SIAP PINDAI'}
                     </span>
                   </div>
-                  <span className="text-xs text-[#41493e] truncate">Sensor Siaga di Milking Parlor Stall 01-08</span>
+                  <span className="text-xs text-[#41493e] truncate">Sensor siap di kandang perah</span>
                 </div>
               </div>
 
               <button 
                 onClick={() => {
                   setRfidActive(!rfidActive);
-                  showToast(rfidActive ? 'Scanner RFID Dinonaktifkan' : 'RFID Siaga Menunggu Tap Eartag...');
+                  showToast(rfidActive ? 'Pemindai dimatikan' : 'Pemindai siap membaca tanda sapi...');
                 }}
-                className="shrink-0 h-10 px-4 rounded-full bg-[#1b5e20] text-white text-xs font-bold inline-flex items-center gap-1.5 active:scale-95 transition-transform shadow-xs"
+                className="shrink-0 h-10 px-4 rounded-full bg-[#1b5e20] text-white text-xs font-bold inline-flex items-center gap-1.5 active:scale-95 transition-transform shadow-xs cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[18px]">sensors</span>
-                <span>{rfidActive ? 'Standby' : 'Aktifkan'}</span>
+                <span>{rfidActive ? 'Siaga' : 'Aktifkan'}</span>
               </button>
             </div>
 
             <div className="mt-3 pt-2.5 flex items-center justify-between bg-white/80 rounded-xl px-3 py-1.5 border border-[#dee8ff]">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#006b5f]"></span>
-                <span className="text-[11px] text-[#41493e]">NFC/UHF Reader 920MHz Sinkron</span>
+                <span className="text-[11px] text-[#41493e]">Alat Pemindai Eartag Terhubung</span>
               </div>
               <button 
                 onClick={() => onNavigate?.('pemindai_rfid_siaga')}
-                className="text-[11px] text-[#006b5f] font-bold hover:underline"
+                className="text-[11px] text-[#006b5f] font-bold hover:underline cursor-pointer"
               >
-                Buka Layar Scanner →
+                Buka Pemindai Eartag →
               </button>
             </div>
           </div>
@@ -352,12 +269,12 @@ export default function PilihSapiDeteksiCNN({ onNavigate }: PilihSapiDeteksiCNNP
         {/* Section Header */}
         <div className="pt-1 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <span className="font-bold text-sm text-[#111c2d]">Antrean Inspeksi Lapangan</span>
+            <span className="font-bold text-sm text-[#111c2d]">Daftar Sapi yang Harus Dicek</span>
             <span className="w-5 h-5 rounded-full bg-[#d8e3fb] text-[#111c2d] text-xs flex items-center justify-center font-bold">
               {filteredCows.length}
             </span>
           </div>
-          <span className="text-xs text-[#717a6d]">Urut: Prioritas Cek</span>
+          <span className="text-xs text-[#717a6d]">Sapi sakit didahulukan</span>
         </div>
 
         {/* Herd Inspection Cards */}
@@ -428,32 +345,37 @@ export default function PilihSapiDeteksiCNN({ onNavigate }: PilihSapiDeteksiCNNP
               {/* Action Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button 
-                  onClick={() => onNavigate?.('deteksi_mastitis_cnn_inspeksi')}
-                  className="w-full h-11 rounded-full bg-[#1b5e20] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs hover:bg-[#00450d] active:scale-[0.98] transition-all"
-                  title="Buka pemindai kamera langsung"
+                  onClick={() => handleSelectCow(cow, 'deteksi_mastitis_cnn_inspeksi')}
+                  className="w-full h-11 rounded-full bg-[#1b5e20] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs hover:bg-[#00450d] active:scale-[0.98] transition-all cursor-pointer"
+                  title="Buka kamera untuk memeriksa ambing sapi ini"
                 >
                   <span className="material-symbols-outlined text-[18px]">photo_camera</span>
-                  <span>Buka Kamera Langsung ({cow.name})</span>
+                  <span>Buka Kamera ({cow.name})</span>
                 </button>
                 <button 
-                  onClick={() => onNavigate?.('deteksi')}
-                  className="w-full h-11 rounded-full bg-[#dee8ff] text-[#00450d] font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-[#d8e3fb] active:scale-[0.98] transition-all"
-                  title="Buka konsol diagnostik klinik desktop"
+                  onClick={() => handleSelectCow(cow, 'deteksi')}
+                  className="w-full h-11 rounded-full bg-[#dee8ff] text-[#00450d] font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-[#d8e3fb] active:scale-[0.98] transition-all cursor-pointer"
+                  title="Lihat hasil periksa lengkap sapi ini"
                 >
                   <span className="material-symbols-outlined text-[18px]">monitor</span>
-                  <span>Konsol Diagnostik</span>
+                  <span>Hasil Periksa Sapi</span>
                 </button>
               </div>
             </div>
           ))}
 
-          {filteredCows.length === 0 && (
+          {cowsLoading ? (
+            <div className="bg-white rounded-2xl p-8 text-center border border-[#dee8ff] flex flex-col items-center justify-center gap-2">
+              <span className="w-6 h-6 border-2 border-[#1b5e20] border-t-transparent rounded-full animate-spin"></span>
+              <p className="text-xs font-bold text-[#111c2d]">Memuat data sapi dari Supabase...</p>
+            </div>
+          ) : filteredCows.length === 0 ? (
             <div className="bg-white rounded-2xl p-6 text-center border border-dashed border-[#dee8ff]">
               <span className="material-symbols-outlined text-4xl text-[#717a6d]">search_off</span>
               <p className="text-sm font-bold text-[#111c2d] mt-2">Tidak Ditemukan Sapi</p>
               <p className="text-xs text-[#717a6d] mt-1">Coba gunakan kata kunci nomor eartag atau filter kandang lainnya.</p>
             </div>
-          )}
+          ) : null}
         </div>
       </main>
       </div>

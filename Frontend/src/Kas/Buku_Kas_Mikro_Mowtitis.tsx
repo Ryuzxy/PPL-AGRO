@@ -10,72 +10,30 @@ interface BukuKasMikroMowtitisProps {
 export default function BukuKasMikroMowtitis({ onNavigate }: BukuKasMikroMowtitisProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showSyncBanner, setShowSyncBanner] = useState(true);
-  const [activeTab, setActiveTab] = useState<'semua' | 'pemasukan' | 'pengeluaran'>('semua');
+  const [activeTab, setActiveTab] = useState<'semua' | 'pemasukan' | 'pengeluaran' | 'arsip'>('semua');
+  const [trxToDelete, setTrxToDelete] = useState<CashTransaction | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  const { transactions: dbTransactions, totalBalance, todayIncome, todayExpense } = useCashflow();
+  const { transactions: dbTransactions, archivedTransactions, totalBalance, todayIncome, todayExpense, loading, deleteTransaction, restoreTransaction } = useCashflow();
 
-  const defaultTransactions: CashTransaction[] = [
-    {
-      id: 'TRX-01',
-      dbId: 1,
-      title: 'Penjualan Susu Sore Line 05 (Sapi #07 Cantik)',
-      category: 'Pemasukan Otomatis',
-      amount: '+Rp 101.500',
-      rawAmount: 101500,
-      time: '16:30 WIB • 14.50 Liter',
-      date: 'Hari ini',
-      isIncome: true,
-      badge: 'IoT Verified'
-    },
-    {
-      id: 'TRX-02',
-      dbId: 2,
-      title: 'Beli Konsentrat Ransum Sore 3 Sak (KUD Rembangan)',
-      category: 'Operasional Pakan',
-      amount: '-Rp 450.000',
-      rawAmount: 450000,
-      time: '14:15 WIB • Kasir KUD',
-      date: 'Hari ini',
-      isIncome: false,
-      badge: 'Nota #8821'
-    },
-    {
-      id: 'TRX-03',
-      dbId: 3,
-      title: 'Penjualan Susu Pagi Seluruh Stall (Line 01-08)',
-      category: 'Pemasukan BMC-01',
-      amount: '+Rp 1.799.700',
-      rawAmount: 1799700,
-      time: '07:15 WIB • 128.55 Liter',
-      date: 'Hari ini',
-      isIncome: true,
-      badge: 'Bank Jatim QRIS'
-    },
-    {
-      id: 'TRX-04',
-      dbId: 4,
-      title: 'Salep Intramamari Mastitis Tube #3 (Sapi #04 Mawar)',
-      category: 'Medis Karantina',
-      amount: '-Rp 68.000',
-      rawAmount: 68000,
-      time: 'Kemarin • drh. Farhan',
-      date: 'Kemarin',
-      isIncome: false,
-      badge: 'Selesai Terapi'
-    }
-  ];
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3000);
+  };
 
-  const activeTransactions = dbTransactions.length > 0 ? dbTransactions : defaultTransactions;
+  const activeTransactions = dbTransactions;
 
-  const filteredTrx = activeTransactions.filter(t => {
-    if (activeTab === 'pemasukan') return t.isIncome;
-    if (activeTab === 'pengeluaran') return !t.isIncome;
-    return true;
-  });
+  const filteredTrx = activeTab === 'arsip'
+    ? archivedTransactions
+    : activeTransactions.filter(t => {
+        if (activeTab === 'pemasukan') return t.isIncome;
+        if (activeTab === 'pengeluaran') return !t.isIncome;
+        return true;
+      });
 
   const displayTotal = totalBalance;
-  const displayIncome = todayIncome > 0 ? todayIncome : 1901200;
-  const displayExpense = todayExpense > 0 ? todayExpense : 450000;
+  const displayIncome = todayIncome;
+  const displayExpense = todayExpense;
   const displayIofc = Math.max(0, displayIncome - displayExpense);
 
   return (
@@ -335,41 +293,143 @@ export default function BukuKasMikroMowtitis({ onNavigate }: BukuKasMikroMowtiti
               >
                 Keluar
               </button>
+              <button 
+                onClick={() => setActiveTab('arsip')}
+                className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+                  activeTab === 'arsip' ? 'bg-[#ba1a1a] text-white shadow-xs' : 'bg-[#ffdad6]/60 text-[#ba1a1a]'
+                }`}
+              >
+                Arsip ({archivedTransactions.length})
+              </button>
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            {filteredTrx.map((trx) => (
-              <div 
-                key={trx.id}
-                className="bg-white rounded-2xl p-3.5 shadow-sm border border-[#dee8ff] flex items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    trx.isIncome ? 'bg-[#acf4a4] text-[#002203]' : 'bg-[#dee8ff] text-[#6c2200]'
-                  }`}>
-                    <span className="material-symbols-outlined text-[20px]">
-                      {trx.isIncome ? 'trending_up' : 'trending_down'}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-[#111c2d] truncate">{trx.title}</p>
-                    <p className="text-[11px] text-[#717a6d] mt-0.5">{trx.time}</p>
-                  </div>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <span className={`text-xs font-bold ${trx.isIncome ? 'text-[#00450d]' : 'text-[#6c2200]'}`}>
-                    {trx.amount}
-                  </span>
-                  <span className="block text-[10px] text-[#717a6d] font-semibold mt-0.5">{trx.badge}</span>
-                </div>
+            {loading ? (
+              <div className="bg-white rounded-2xl p-6 text-center text-[#717a6d] border border-[#dee8ff]">
+                <span className="material-symbols-outlined text-[28px] animate-spin text-[#006b5f]">progress_activity</span>
+                <p className="text-xs mt-2 font-semibold">Memuat catatan kas dari Supabase...</p>
               </div>
-            ))}
+            ) : filteredTrx.length === 0 ? (
+              <div className="bg-white rounded-2xl p-6 text-center text-[#717a6d] border border-[#dee8ff]">
+                <span className="material-symbols-outlined text-[32px] text-[#717a6d]">receipt_long</span>
+                <p className="text-xs font-bold text-[#111c2d] mt-2">Belum ada transaksi</p>
+                <p className="text-[11px] text-[#717a6d]">Catat pemasukan atau pengeluaran pertama peternakan Anda.</p>
+              </div>
+            ) : (
+              filteredTrx.map((trx) => (
+                <div 
+                  key={trx.id}
+                  className="bg-white rounded-2xl p-3.5 shadow-sm border border-[#dee8ff] flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                      trx.isIncome ? 'bg-[#acf4a4] text-[#002203]' : 'bg-[#dee8ff] text-[#6c2200]'
+                    }`}>
+                      <span className="material-symbols-outlined text-[20px]">
+                        {trx.isIncome ? 'trending_up' : 'trending_down'}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-[#111c2d] truncate">{trx.title}</p>
+                      <p className="text-[11px] text-[#717a6d] mt-0.5">{trx.time} • {trx.date}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="text-right">
+                      <span className={`text-xs font-bold ${trx.isIncome ? 'text-[#00450d]' : 'text-[#6c2200]'}`}>
+                        {trx.amount}
+                      </span>
+                      <span className="block text-[10px] text-[#717a6d] font-semibold mt-0.5">{trx.badge}</span>
+                    </div>
+                    {activeTab === 'arsip' ? (
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await restoreTransaction(trx.dbId, trx.isIncome);
+                            showToast(`Transaksi ${trx.title} berhasil dipulihkan.`);
+                          } catch (err: any) {
+                            showToast('Gagal memulihkan transaksi');
+                          }
+                        }}
+                        className="px-2 py-1 rounded-full bg-[#acf4a4] hover:bg-[#8ee485] text-[#002203] text-[10px] font-bold flex items-center gap-1 cursor-pointer shadow-xs"
+                        title="Pulihkan Transaksi"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">unarchive</span> Pulihkan
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTrxToDelete(trx);
+                        }}
+                        className="p-1.5 rounded-full hover:bg-[#ffdad6] text-slate-400 hover:text-[#ba1a1a] transition-colors cursor-pointer"
+                        title="Hapus Transaksi (Soft Delete)"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </main>
       </div>
+
+      {/* FLOATING TOAST NOTIFICATION */}
+      {toastMsg && (
+        <div className="fixed bottom-24 lg:bottom-10 right-6 z-50 bg-[#111c2d] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-bottom duration-200">
+          <span className="material-symbols-outlined text-[#8df5e4] text-[20px]">check_circle</span>
+          <span className="text-sm font-semibold">{toastMsg}</span>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI SOFT DELETE TRANSAKSI */}
+      {trxToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 flex flex-col gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#ffdad6] text-[#ba1a1a] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[28px]">delete</span>
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-[#111c2d]">Hapus Catatan Transaksi?</h3>
+              <p className="text-xs text-[#717a6d] mt-1.5 leading-relaxed">
+                Anda akan mengarsipkan transaksi <strong>{trxToDelete.title}</strong> senilai <strong>{trxToDelete.amount}</strong>. Data akan disembunyikan dari buku kas aktif (soft delete) namun tetap tersimpan di database Supabase.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setTrxToDelete(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 text-xs transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await deleteTransaction(trxToDelete.dbId, trxToDelete.isIncome);
+                    showToast(`Transaksi ${trxToDelete.title} berhasil diarsipkan.`);
+                    setTrxToDelete(null);
+                  } catch (e: any) {
+                    showToast('Gagal menghapus transaksi: ' + (e.message || 'Error'));
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-[#ba1a1a] hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
+              >
+                Ya, Hapus Transaksi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Drawer */}
       <MobileDrawer

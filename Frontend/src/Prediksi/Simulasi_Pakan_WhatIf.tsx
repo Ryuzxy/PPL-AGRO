@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 interface SimulasiPakanWhatIfProps {
   onBack?: () => void;
@@ -89,12 +90,21 @@ export const SimulasiPakanWhatIf: React.FC<SimulasiPakanWhatIfProps> = ({
     }
   };
 
-  const handleConfirmApply = () => {
+  const handleConfirmApply = async () => {
     setIsApplying(true);
-    setTimeout(() => {
-      setIsApplying(false);
-      setIsAppliedSuccess(true);
-    }, 1200);
+    try {
+      await supabase.from('pengeluaran').insert({
+        kategori: 'Pakan Konsentrat',
+        jumlah: feedCost,
+        keterangan: `Aplikasi Formulasi Ransum Pakan ${cowName} (#${cowTag}) - What-If XGBoost (${konsentrat}kg Konsentrat, ${rumput}kg Rumput)`,
+        tanggal: new Date().toISOString().split('T')[0]
+      });
+      showToast(`Biaya ransum Rp ${feedCost.toLocaleString('id-ID')} berhasil dicatat ke Supabase!`);
+    } catch (e) {
+      console.warn('Gagal mencatat pengeluaran pakan ke Supabase:', e);
+    }
+    setIsApplying(false);
+    setIsAppliedSuccess(true);
   };
 
   return (

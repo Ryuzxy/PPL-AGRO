@@ -28,21 +28,21 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
   const mainModules = [
     { id: 'dashboard', label: 'Beranda Sistem', icon: 'dashboard', badge: 'Utama' },
-    { id: 'deteksi', label: 'Kamera Deteksi YOLO v26', icon: 'photo_camera', badge: 'YOLOv26' },
-    { id: 'prediksi', label: 'Prediksi Produksi XGBoost', icon: 'trending_up', badge: 'AI Susu' },
-    { id: 'simulasi_whatif', label: 'Simulasi Nutrisi What-If', icon: 'calculate', badge: 'Pakan' },
-    { id: 'katalog', label: 'Katalog Kawanan Sapi', icon: 'pets', badge: '18 Ekor' },
-    { id: 'kas', label: 'Buku Kas Mikro Peternak', icon: 'account_balance_wallet', badge: 'Keuangan' },
-    { id: 'riwayat_kas', label: 'Riwayat Transaksi Kas', icon: 'receipt_long', badge: 'Histori' },
+    { id: 'deteksi', label: 'Cek Ambing (Kamera)', icon: 'photo_camera', badge: 'Kamera AI' },
+    { id: 'prediksi', label: 'Perkiraan Susu & Pakan', icon: 'trending_up', badge: 'Perkiraan' },
+    { id: 'simulasi_whatif', label: 'Hitung Campuran Pakan', icon: 'calculate', badge: 'Pakan' },
+    { id: 'katalog', label: 'Daftar Semua Sapi', icon: 'pets', badge: 'Semua Sapi' },
+    { id: 'kas', label: 'Catatan Uang (Kas)', icon: 'account_balance_wallet', badge: 'Keuangan' },
+    { id: 'riwayat_kas', label: 'Catatan Keluar Masuk Uang', icon: 'receipt_long', badge: 'Riwayat' },
   ];
 
   const clinicalModules = [
-    { id: 'pemerahan', label: 'Sesi Pemerahan Susu', icon: 'water_drop' },
-    { id: 'catat_pengobatan', label: 'Catat Terapi Mastitis', icon: 'medical_services' },
-    { id: 'pasca_pemulihan', label: 'Dashboard Pasca Pemulihan', icon: 'healing' },
-    { id: 'rapid_test', label: 'Rapid Test Uji SCC', icon: 'biotech' },
-    { id: 'pemindai_rfid', label: 'Pemindai RFID Eartag', icon: 'contactless' },
-    { id: 'unduh_kas', label: 'Unduh & Cetak PDF', icon: 'file_download' },
+    { id: 'pemerahan', label: 'Perah Susu', icon: 'water_drop' },
+    { id: 'catat_pengobatan', label: 'Obat Radang Susu', icon: 'medical_services' },
+    { id: 'pasca_pemulihan', label: 'Kondisi Sapi Sembuh', icon: 'healing' },
+    { id: 'rapid_test', label: 'Tes Cepat Susu (SCC)', icon: 'biotech' },
+    { id: 'pemindai_rfid', label: 'Alat Pindai Sapi (RFID)', icon: 'contactless' },
+    { id: 'unduh_kas', label: 'Cetak Laporan (PDF)', icon: 'file_download' },
   ];
 
   return (

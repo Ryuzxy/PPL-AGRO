@@ -11,77 +11,25 @@ export default function RiwayatKas({ onNavigate }: RiwayatKasProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showToast, setShowToast] = useState(true);
   const [filterPeriod, setFilterPeriod] = useState<'bulan' | 'hari' | '7hari' | 'kustom'>('bulan');
-  const [filterType, setFilterType] = useState<'semua' | 'pemasukan' | 'pengeluaran'>('semua');
+  const [filterType, setFilterType] = useState<'semua' | 'pemasukan' | 'pengeluaran' | 'arsip'>('semua');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [trxToDelete, setTrxToDelete] = useState<CashTransaction | null>(null);
 
-  const { transactions: dbTransactions, totalBalance, todayIncome, todayExpense } = useCashflow();
+  const { transactions: dbTransactions, archivedTransactions, totalBalance, todayIncome, todayExpense, loading, deleteTransaction, restoreTransaction } = useCashflow();
 
-  const defaultTransactions: CashTransaction[] = [
-    {
-      id: 'TRX-01',
-      dbId: 1,
-      title: 'Salep Mastitis & Iodin Teat Dip',
-      category: 'Medis Mastitis',
-      amount: '-Rp 145.000',
-      rawAmount: 145000,
-      time: '17:52 WIB',
-      date: 'Hari Ini',
-      isIncome: false,
-      badge: 'BARU DICATAT',
-      notes: 'Sapi #04 (Mawar - Karantina B-02)'
-    },
-    {
-      id: 'TRX-02',
-      dbId: 2,
-      title: 'Setoran Susu Sore Parlor A',
-      category: 'Pemasukan Kas',
-      amount: '+Rp 529.200',
-      rawAmount: 529200,
-      time: '16:30 WIB',
-      date: 'Hari Ini',
-      isIncome: true,
-      badge: '37.8 L Susu',
-      notes: 'Koperasi Rembangan'
-    },
-    {
-      id: 'TRX-03',
-      dbId: 3,
-      title: 'Pakan Konsentrat Starter 2 Karung',
-      category: 'Operasional Pakan',
-      amount: '-Rp 420.000',
-      rawAmount: 420000,
-      time: '10:15 WIB',
-      date: 'Kemarin',
-      isIncome: false,
-      badge: 'Pakan Kawanan',
-      notes: '100 kg Konsentrat 18%'
-    },
-    {
-      id: 'TRX-04',
-      dbId: 4,
-      title: 'Setoran Susu Pagi & Sore',
-      category: 'Pemasukan Kas',
-      amount: '+Rp 1.120.000',
-      rawAmount: 112000,
-      time: '17:00 WIB',
-      date: 'Kemarin',
-      isIncome: true,
-      badge: '80.0 L Susu',
-      notes: 'Koperasi Rembangan'
-    }
-  ];
+  const activeTransactions = dbTransactions;
 
-  const activeTransactions = dbTransactions.length > 0 ? dbTransactions : defaultTransactions;
-
-  const filteredTrx = activeTransactions.filter(t => {
-    if (filterType === 'pemasukan') return t.isIncome;
-    if (filterType === 'pengeluaran') return !t.isIncome;
-    return true;
-  });
+  const filteredTrx = filterType === 'arsip'
+    ? archivedTransactions
+    : activeTransactions.filter(t => {
+        if (filterType === 'pemasukan') return t.isIncome;
+        if (filterType === 'pengeluaran') return !t.isIncome;
+        return true;
+      });
 
   const displayTotal = totalBalance;
-  const displayIncome = todayIncome > 0 ? todayIncome : 34720000;
-  const displayExpense = todayExpense > 0 ? todayExpense : 20015000;
+  const displayIncome = todayIncome;
+  const displayExpense = todayExpense;
   const netMargin = Math.max(0, displayIncome - displayExpense);
 
   const triggerToast = (msg: string) => {
@@ -384,72 +332,174 @@ export default function RiwayatKas({ onNavigate }: RiwayatKasProps) {
             >
               Pengeluaran ({activeTransactions.filter(t => !t.isIncome).length})
             </button>
+            <button 
+              onClick={() => setFilterType('arsip')}
+              className={`flex-1 py-1.5 rounded-lg font-bold text-center transition-all ${
+                filterType === 'arsip' ? 'bg-[#ba1a1a] text-white shadow-xs' : 'text-[#ba1a1a] bg-[#ffdad6]/40 hover:bg-[#ffdad6]/70'
+              }`}
+            >
+              Arsip ({archivedTransactions.length})
+            </button>
           </div>
 
           {/* Dynamic Transactions List */}
           <div className="space-y-2 pt-1">
-            {filteredTrx.map((trx) => (
-              <article 
-                key={trx.id}
-                onClick={() => {
-                  if (!trx.isIncome && trx.category.toLowerCase().includes('medis')) {
-                    onNavigate?.('pengeluaran_medis');
-                  }
-                }}
-                className={`flex flex-col bg-white rounded-2xl p-3.5 shadow-xs border transition-all ${
-                  !trx.isIncome && trx.category.toLowerCase().includes('medis')
-                    ? 'border-amber-200 hover:border-amber-300 cursor-pointer'
-                    : 'border-[#dee8ff]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      trx.isIncome 
-                        ? 'bg-[#acf4a4]/40 text-[#00450d]' 
-                        : trx.category.toLowerCase().includes('medis')
-                        ? 'bg-[#ffdad6] text-[#933100]'
-                        : 'bg-[#e7eeff] text-[#111c2d]'
-                    }`}>
-                      <span className="material-symbols-outlined text-[20px]">
-                        {trx.isIncome 
-                          ? 'water_drop' 
-                          : trx.category.toLowerCase().includes('medis') 
-                          ? 'medical_services' 
-                          : 'grass'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h4 className="text-xs font-bold text-[#111c2d] truncate">{trx.title}</h4>
-                        <span className="px-2 py-0.5 rounded-full bg-[#f0f3ff] text-[#006b5f] text-[10px] font-extrabold">
-                          {trx.badge}
+            {loading ? (
+              <div className="bg-white rounded-2xl p-6 text-center text-[#717a6d] border border-[#dee8ff]">
+                <span className="material-symbols-outlined text-[28px] animate-spin text-[#006b5f]">progress_activity</span>
+                <p className="text-xs mt-2 font-semibold">Memuat catatan kas dari Supabase...</p>
+              </div>
+            ) : filteredTrx.length === 0 ? (
+              <div className="bg-white rounded-2xl p-6 text-center text-[#717a6d] border border-[#dee8ff]">
+                <span className="material-symbols-outlined text-[32px] text-[#717a6d]">receipt_long</span>
+                <p className="text-xs font-bold text-[#111c2d] mt-2">Belum ada transaksi</p>
+                <p className="text-[11px] text-[#717a6d]">Belum ada riwayat transaksi yang tercatat di Supabase.</p>
+              </div>
+            ) : (
+              filteredTrx.map((trx) => (
+                <article 
+                  key={trx.id}
+                  onClick={() => {
+                    if (!trx.isIncome && trx.category.toLowerCase().includes('medis')) {
+                      onNavigate?.('pengeluaran_medis');
+                    }
+                  }}
+                  className={`flex flex-col bg-white rounded-2xl p-3.5 shadow-xs border transition-all ${
+                    !trx.isIncome && trx.category.toLowerCase().includes('medis')
+                      ? 'border-amber-200 hover:border-amber-300 cursor-pointer'
+                      : 'border-[#dee8ff]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        trx.isIncome 
+                          ? 'bg-[#acf4a4]/40 text-[#00450d]' 
+                          : trx.category.toLowerCase().includes('medis')
+                          ? 'bg-[#ffdad6] text-[#933100]'
+                          : 'bg-[#e7eeff] text-[#111c2d]'
+                      }`}>
+                        <span className="material-symbols-outlined text-[20px]">
+                          {trx.isIncome 
+                            ? 'water_drop' 
+                            : trx.category.toLowerCase().includes('medis') 
+                            ? 'medical_services' 
+                            : 'grass'}
                         </span>
                       </div>
-                      <p className="text-[11px] text-[#717a6d] mt-0.5 truncate">
-                        {trx.category} {trx.notes ? `• ${trx.notes}` : ''}
-                      </p>
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="text-xs font-bold text-[#111c2d] truncate">{trx.title}</h4>
+                          <span className="px-2 py-0.5 rounded-full bg-[#f0f3ff] text-[#006b5f] text-[10px] font-extrabold">
+                            {trx.badge}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#717a6d] mt-0.5 truncate">
+                          {trx.category} {trx.notes ? `• ${trx.notes}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-sm font-black whitespace-nowrap ${
+                      trx.isIncome ? 'text-[#00450d]' : 'text-[#933100]'
+                    }`}>
+                      {trx.amount}
+                    </span>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-[#dee8ff]/50 flex items-center justify-between text-[11px] text-[#717a6d]">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[13px] text-[#006b5f]">cloud_done</span>
+                      Supabase Synced
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span>{trx.time} • {trx.date}</span>
+                      {filterType === 'arsip' ? (
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await restoreTransaction(trx.dbId, trx.isIncome);
+                              triggerToast(`Transaksi ${trx.title} berhasil dipulihkan.`);
+                            } catch (err: any) {
+                              triggerToast('Gagal memulihkan: ' + (err.message || 'Error'));
+                            }
+                          }}
+                          className="px-2 py-0.5 rounded-md bg-[#acf4a4] hover:bg-[#8ee485] text-[#002203] text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                          title="Pulihkan Transaksi ke Buku Kas"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">unarchive</span> Pulihkan
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTrxToDelete(trx);
+                          }}
+                          className="p-1 rounded-md text-slate-400 hover:text-[#ba1a1a] hover:bg-[#ffdad6]/60 transition-colors cursor-pointer"
+                          title="Hapus Transaksi (Soft Delete)"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <span className={`text-sm font-black whitespace-nowrap ${
-                    trx.isIncome ? 'text-[#00450d]' : 'text-[#933100]'
-                  }`}>
-                    {trx.amount}
-                  </span>
-                </div>
-                <div className="mt-2 pt-2 border-t border-[#dee8ff]/50 flex items-center justify-between text-[11px] text-[#717a6d]">
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[13px] text-[#006b5f]">cloud_done</span>
-                    Supabase Synced
-                  </span>
-                  <span>{trx.time} • {trx.date}</span>
-                </div>
-              </article>
-            ))}
+                </article>
+              ))
+            )}
           </div>
         </section>
       </main>
       </div>
+
+      {/* FLOATING TOAST NOTIFICATION */}
+      {toastMsg && (
+        <div className="fixed bottom-24 lg:bottom-10 right-6 z-50 bg-[#111c2d] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-bottom duration-200">
+          <span className="material-symbols-outlined text-[#8df5e4] text-[20px]">check_circle</span>
+          <span className="text-sm font-semibold">{toastMsg}</span>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI SOFT DELETE TRANSAKSI */}
+      {trxToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 flex flex-col gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#ffdad6] text-[#ba1a1a] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[28px]">delete</span>
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-[#111c2d]">Hapus Catatan Transaksi?</h3>
+              <p className="text-xs text-[#717a6d] mt-1.5 leading-relaxed">
+                Anda akan mengarsipkan transaksi <strong>{trxToDelete.title}</strong> senilai <strong>{trxToDelete.amount}</strong>. Data akan disembunyikan dari buku kas aktif (soft delete) namun tetap tersimpan di database Supabase.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setTrxToDelete(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 text-xs transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await deleteTransaction(trxToDelete.dbId, trxToDelete.isIncome);
+                    triggerToast(`Transaksi ${trxToDelete.title} berhasil diarsipkan.`);
+                    setTrxToDelete(null);
+                  } catch (e: any) {
+                    triggerToast('Gagal menghapus transaksi: ' + (e.message || 'Error'));
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-[#ba1a1a] hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
+              >
+                Ya, Hapus Transaksi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Drawer */}
       <MobileDrawer

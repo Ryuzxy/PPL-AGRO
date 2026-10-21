@@ -24,104 +24,6 @@ interface Transaction {
   verifiedBy?: string;
 }
 
-const INITIAL_TRANSACTIONS: Transaction[] = [
-  {
-    id: 'TX-01',
-    date: '15 Mar 2025',
-    time: '16:42 WIB',
-    category: 'pemasukan',
-    categoryLabel: 'Setor Susu',
-    subject: 'Sapi #04 "Mawar"',
-    subtext: 'Pemerahan sore stasiun parlor A2',
-    tag: 'Kuartir RL Pulih',
-    tagColor: 'bg-[#d8e3fb] text-[#006b5f]',
-    quantity: '6.85 Liter',
-    amount: 95900,
-    status: 'Lunas Rek. KUD',
-    receiptNumber: '#0419'
-  },
-  {
-    id: 'TX-02',
-    date: '15 Mar 2025',
-    time: '16:15 WIB',
-    category: 'pemasukan',
-    categoryLabel: 'Setor Susu',
-    subject: 'Setor BMC Parlor A Kolektif',
-    subtext: 'Cooling tank batch #02 (KUD Rembangan)',
-    quantity: '48.20 Liter',
-    amount: 674800,
-    status: 'Tervalidasi BMC',
-    receiptNumber: '#882'
-  },
-  {
-    id: 'TX-03',
-    date: '15 Mar 2025',
-    time: '11:20 WIB',
-    category: 'pakan',
-    categoryLabel: 'Beban Pakan',
-    subject: 'Pakan Konsentrat Pokphand PK 18%',
-    subtext: 'Toko Tani Arjasa (DO-AJM/891)',
-    quantity: '2 Sak (100 kg)',
-    amount: -450000,
-    status: 'Lunas Kasir',
-    receiptNumber: 'AJM-891'
-  },
-  {
-    id: 'TX-04',
-    date: '14 Mar 2025',
-    time: '09:10 WIB',
-    category: 'medis',
-    categoryLabel: 'Medis Mastitis',
-    subject: 'Terapi Cloxacillin Intramammary',
-    subtext: '3 Tube + Teat Dip • Cegah afkir Rp 2.400.000',
-    tag: 'ROI 16.5x',
-    tagColor: 'bg-[#acf4a4] text-[#0c5216]',
-    quantity: '1 Paket Dosis',
-    amount: -145000,
-    status: 'Resep Mantri Sutrisno',
-    receiptNumber: 'MED-04'
-  },
-  {
-    id: 'TX-05',
-    date: '14 Mar 2025',
-    time: '06:30 WIB',
-    category: 'pemasukan',
-    categoryLabel: 'Setor Susu',
-    subject: 'Penjualan Susu Pagi Kawanan Kandang A',
-    subtext: 'Kadar lemak 4.1% • Lolos uji CMT mandiri',
-    quantity: '73.50 Liter',
-    amount: 1029000,
-    status: 'Lunas Transfer KUD',
-    receiptNumber: '#9102'
-  },
-  {
-    id: 'TX-06',
-    date: '13 Mar 2025',
-    time: '14:00 WIB',
-    category: 'pakan',
-    categoryLabel: 'Beban Pakan',
-    subject: 'Rumput Gajah / Odot Petani Mitra',
-    subtext: '500 kg hijauan segar Rembangan',
-    quantity: '500 kg',
-    amount: -150000,
-    status: 'Lunas Tunai',
-    receiptNumber: 'HG-130'
-  },
-  {
-    id: 'TX-07',
-    date: '12 Mar 2025',
-    time: '10:00 WIB',
-    category: 'medis',
-    categoryLabel: 'Medis Mastitis',
-    subject: 'Teat Dip Sanitasi Iodine 5L',
-    subtext: 'Antiseptik celup puting pasca perah',
-    quantity: '1 Galon 5L',
-    amount: -150000,
-    status: 'Lunas Toko Medika',
-    receiptNumber: 'MED-12'
-  }
-];
-
 export default function DashboardKas({ onNavigate }: DashboardKasProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [period, setPeriod] = useState<'Bulan Ini' | 'Hari Ini' | '7 Hari'>('Bulan Ini');
@@ -147,14 +49,50 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
   // Toast
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  const { addIncome, addExpense } = useCashflow();
+  const { transactions: dbTransactions, totalBalance, todayIncome, todayExpense, loading, addIncome, addExpense } = useCashflow();
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
   };
 
-  const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
+  const transactions: Transaction[] = useMemo(() => {
+    return dbTransactions.map((trx) => {
+      const isMed = trx.category.toLowerCase().includes('medis');
+      const isPakan = trx.category.toLowerCase().includes('pakan');
+      const cat: 'pemasukan' | 'pakan' | 'medis' | 'operasional' = trx.isIncome 
+        ? 'pemasukan' 
+        : isMed 
+        ? 'medis' 
+        : isPakan 
+        ? 'pakan' 
+        : 'operasional';
+
+      const catLabel = trx.isIncome 
+        ? 'Setor Susu' 
+        : isMed 
+        ? 'Medis Mastitis' 
+        : isPakan 
+        ? 'Beban Pakan' 
+        : 'Operasional';
+
+      return {
+        id: trx.id,
+        date: trx.date,
+        time: trx.time,
+        category: cat,
+        categoryLabel: catLabel,
+        subject: trx.title,
+        subtext: trx.notes || (trx.isIncome ? 'Penerimaan kas hasil susu kandang' : 'Pengeluaran operasional'),
+        tag: trx.badge,
+        tagColor: trx.isIncome ? 'bg-[#d8e3fb] text-[#006b5f]' : isMed ? 'bg-[#ffdad6] text-[#ba1a1a]' : 'bg-[#f0f3ff] text-[#41493e]',
+        quantity: trx.badge || '1 Transaksi',
+        amount: trx.isIncome ? trx.rawAmount : -Math.abs(trx.rawAmount),
+        status: 'Tersimpan di Supabase',
+        receiptNumber: `#${trx.dbId}`,
+      };
+    });
+  }, [dbTransactions]);
 
   // Filtered transactions
   const filteredTransactions = useMemo(() => {
@@ -178,21 +116,6 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
     const price = parseInt(milkPrice) || 14000;
     const total = Math.round(vol * price);
 
-    const newTx: Transaction = {
-      id: `TX-${Date.now()}`,
-      date: '15 Mar 2025',
-      time: 'Baru saja',
-      category: 'pemasukan',
-      categoryLabel: 'Setor Susu',
-      subject: milkSubject,
-      subtext: `Setoran baru ${vol.toFixed(2)} Liter @Rp ${price.toLocaleString('id-ID')}`,
-      quantity: `${vol.toFixed(2)} Liter`,
-      amount: total,
-      status: 'Tervalidasi BMC',
-      receiptNumber: `#${Math.floor(1000 + Math.random() * 9000)}`
-    };
-
-    setTransactions([newTx, ...transactions]);
     setModalPemasukanOpen(false);
     showToast(`Setor Susu ${vol} L (+Rp ${total.toLocaleString('id-ID')}) berhasil dicatat & disinkronkan ke Supabase!`);
 
@@ -212,21 +135,6 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
     e.preventDefault();
     const amountVal = parseInt(expAmount) || 0;
 
-    const newTx: Transaction = {
-      id: `TX-${Date.now()}`,
-      date: '15 Mar 2025',
-      time: 'Baru saja',
-      category: expCategory,
-      categoryLabel: expCategory === 'pakan' ? 'Beban Pakan' : expCategory === 'medis' ? 'Medis Mastitis' : 'Operasional',
-      subject: expDesc || 'Beban Operasional Kandang',
-      subtext: 'Pencatatan kas keluar manual',
-      quantity: '1 Item',
-      amount: -Math.abs(amountVal),
-      status: 'Lunas Kas',
-      receiptNumber: expReceipt || `KAS-${Math.floor(100 + Math.random() * 900)}`
-    };
-
-    setTransactions([newTx, ...transactions]);
     setModalPengeluaranOpen(false);
     showToast(`Pengeluaran Rp ${amountVal.toLocaleString('id-ID')} berhasil dicatat & disinkronkan ke Supabase!`);
 
@@ -388,7 +296,7 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
               <div className="flex items-start justify-between">
                 <div className="flex flex-col">
                   <span className="text-[11px] font-bold text-[#717a6d] uppercase tracking-wider">Surplus Bersih (Net Margin)</span>
-                  <span className="text-[26px] sm:text-[30px] font-black text-[#00450d] mt-1 leading-tight">Rp 18.845.400</span>
+                  <span className="text-[26px] sm:text-[30px] font-black text-[#00450d] mt-1 leading-tight">Rp {totalBalance.toLocaleString('id-ID')}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-[#acf4a4]/40 text-[#00450d]">
                   <span className="material-symbols-outlined text-[24px]">savings</span>
@@ -396,10 +304,10 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
               </div>
               <div className="mt-4 pt-1 flex items-center justify-between bg-[#f0f3ff] px-3 py-1.5 rounded-xl border border-slate-200/50">
                 <div className="flex items-center gap-1 text-[#1b5e20] text-[11px] font-bold">
-                  <span className="material-symbols-outlined text-[16px]">arrow_upward</span>
-                  <span>+14.8% vs Feb</span>
+                  <span className="material-symbols-outlined text-[16px]">cloud_done</span>
+                  <span>Supabase Live</span>
                 </div>
-                <span className="text-[11px] text-[#41493e]">Surplus Sehat</span>
+                <span className="text-[11px] text-[#41493e]">Surplus Kas</span>
               </div>
             </div>
 
@@ -408,7 +316,7 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
               <div className="flex items-start justify-between">
                 <div className="flex flex-col">
                   <span className="text-[11px] font-bold text-[#717a6d] uppercase tracking-wider">Total Pemasukan Susu</span>
-                  <span className="text-[26px] sm:text-[30px] font-black text-[#111c2d] mt-1 leading-tight">Rp 34.720.000</span>
+                  <span className="text-[26px] sm:text-[30px] font-black text-[#111c2d] mt-1 leading-tight">Rp {todayIncome.toLocaleString('id-ID')}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-[#8df5e4]/50 text-[#00201c]">
                   <span className="material-symbols-outlined text-[24px]">water_drop</span>
@@ -416,11 +324,11 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
               </div>
               <div className="mt-4 pt-1 flex flex-col gap-1.5">
                 <div className="flex justify-between text-[12px]">
-                  <span className="text-[#41493e]">Total Volume Setor</span>
-                  <span className="font-bold text-[#111c2d]">2.480 L @Rp 14.000</span>
+                  <span className="text-[#41493e]">Total Pemasukan Tercatat</span>
+                  <span className="font-bold text-[#111c2d]">Rp {todayIncome.toLocaleString('id-ID')}</span>
                 </div>
                 <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div className="bg-[#006b5f] h-full rounded-full" style={{ width: '88%' }}></div>
+                  <div className="bg-[#006b5f] h-full rounded-full" style={{ width: '100%' }}></div>
                 </div>
               </div>
             </div>
@@ -430,16 +338,15 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
               <div className="flex items-start justify-between">
                 <div className="flex flex-col">
                   <span className="text-[11px] font-bold text-[#717a6d] uppercase tracking-wider">Total Beban Kandang</span>
-                  <span className="text-[26px] sm:text-[30px] font-black text-[#6c2200] mt-1 leading-tight">Rp 15.874.600</span>
+                  <span className="text-[26px] sm:text-[30px] font-black text-[#6c2200] mt-1 leading-tight">Rp {todayExpense.toLocaleString('id-ID')}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-[#ffdbcf] text-[#802a00]">
                   <span className="material-symbols-outlined text-[24px]">payments</span>
                 </div>
               </div>
               <div className="mt-4 flex items-center justify-between text-[#41493e] text-[11px] font-semibold">
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#6c2200]"></span> Pakan 68%</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#ba1a1a]"></span> Medis 18%</span>
-                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-400"></span> Sanitasi 14%</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#6c2200]"></span> Pakan &amp; Medis</span>
+                <span className="inline-flex items-center gap-1 text-[#006b5f] font-bold">Terverifikasi</span>
               </div>
             </div>
 
@@ -449,7 +356,7 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
                 <div className="flex flex-col">
                   <span className="text-[11px] font-bold text-[#717a6d] uppercase tracking-wider">Marjin Pakan (IOFC)</span>
                   <span className="text-[24px] sm:text-[28px] font-black text-[#00450d] mt-1 leading-tight">
-                    Rp 1.349.700 <span className="text-[12px] text-[#41493e] font-normal">/hari</span>
+                    Rp {Math.max(0, todayIncome - todayExpense).toLocaleString('id-ID')} <span className="text-[12px] text-[#41493e] font-normal">/hari</span>
                   </span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-[#dee8ff] text-[#006b5f]">
@@ -457,8 +364,8 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
                 </div>
               </div>
               <div className="mt-4 pt-1 flex items-center justify-between bg-[#f0f3ff] px-3 py-1.5 rounded-xl border border-slate-200/50">
-                <span className="text-[12px] text-[#111c2d] font-bold">Rp 9.800 / L Susu</span>
-                <span className="px-2 py-0.5 rounded text-[10px] bg-[#acf4a4] text-[#0c5216] font-bold">75% Efisiensi</span>
+                <span className="text-[12px] text-[#111c2d] font-bold">Net Operasional</span>
+                <span className="px-2 py-0.5 rounded text-[10px] bg-[#acf4a4] text-[#0c5216] font-bold">Optimal</span>
               </div>
             </div>
           </div>
@@ -582,72 +489,89 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-[13px]">
-                      {filteredTransactions.map((tx) => (
-                        <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            <div className="flex flex-col">
-                              <span className="font-bold text-[#111c2d]">{tx.date}</span>
-                              <span className="text-[11px] text-[#717a6d]">{tx.time}</span>
-                            </div>
-                          </td>
-
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                              tx.category === 'pemasukan'
-                                ? 'bg-[#acf4a4] text-[#0c5216]'
-                                : tx.category === 'pakan'
-                                ? 'bg-[#ffdbcf] text-[#802a00]'
-                                : 'bg-[#ffdad6] text-[#93000a]'
-                            }`}>
-                              <span className="material-symbols-outlined text-[13px]">
-                                {tx.category === 'pemasukan' ? 'south_west' : 'north_east'}
-                              </span>
-                              {tx.categoryLabel}
-                            </span>
-                          </td>
-
-                          <td className="py-3 px-4">
-                            <div className="flex flex-col">
-                              <div className="flex items-center gap-1.5 font-bold text-[#111c2d]">
-                                <span>{tx.subject}</span>
-                                {tx.tag && (
-                                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${tx.tagColor || 'bg-slate-200'}`}>
-                                    {tx.tag}
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-[11px] text-[#41493e]">{tx.subtext}</span>
-                            </div>
-                          </td>
-
-                          <td className="py-3 px-4 whitespace-nowrap text-[#111c2d] font-semibold">
-                            {tx.quantity}
-                          </td>
-
-                          <td className={`py-3 px-4 whitespace-nowrap text-right font-extrabold text-[15px] ${
-                            tx.amount > 0 ? 'text-[#00450d]' : 'text-[#6c2200]'
-                          }`}>
-                            {tx.amount > 0 ? `+Rp ${tx.amount.toLocaleString('id-ID')}` : `-Rp ${Math.abs(tx.amount).toLocaleString('id-ID')}`}
-                          </td>
-
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
-                              <span className={`w-2 h-2 rounded-full ${tx.amount > 0 ? 'bg-[#1b5e20]' : 'bg-[#006b5f]'}`}></span>
-                              <span className="text-[12px] font-semibold text-[#111c2d]">{tx.status}</span>
-                            </div>
-                          </td>
-
-                          <td className="py-3 px-4 whitespace-nowrap text-center">
-                            <button 
-                              onClick={() => setSelectedReceipt(tx)}
-                              className="p-1.5 rounded-lg bg-[#f0f3ff] hover:bg-[#dee8ff] text-[#006b5f] transition-colors border border-slate-200"
-                              title="Lihat Bukti Nota"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">receipt_long</span>
-                            </button>
+                      {loading ? (
+                        <tr>
+                          <td colSpan={7} className="py-8 text-center text-[#717a6d]">
+                            <span className="material-symbols-outlined text-[28px] animate-spin text-[#006b5f]">progress_activity</span>
+                            <p className="text-xs mt-2 font-semibold">Memuat catatan kas dari Supabase...</p>
                           </td>
                         </tr>
-                      ))}
+                      ) : filteredTransactions.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="py-8 text-center text-[#717a6d]">
+                            <span className="material-symbols-outlined text-[32px] text-[#717a6d]">receipt_long</span>
+                            <p className="text-xs font-bold text-[#111c2d] mt-2">Belum ada transaksi</p>
+                            <p className="text-[11px] text-[#717a6d]">Transaksi akan muncul di sini setelah dicatat.</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredTransactions.map((tx) => (
+                          <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-[#111c2d]">{tx.date}</span>
+                                <span className="text-[11px] text-[#717a6d]">{tx.time}</span>
+                              </div>
+                            </td>
+
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                tx.category === 'pemasukan'
+                                  ? 'bg-[#acf4a4] text-[#0c5216]'
+                                  : tx.category === 'pakan'
+                                  ? 'bg-[#ffdbcf] text-[#802a00]'
+                                  : 'bg-[#ffdad6] text-[#93000a]'
+                              }`}>
+                                <span className="material-symbols-outlined text-[13px]">
+                                  {tx.category === 'pemasukan' ? 'south_west' : 'north_east'}
+                                </span>
+                                {tx.categoryLabel}
+                              </span>
+                            </td>
+
+                            <td className="py-3 px-4">
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-1.5 font-bold text-[#111c2d]">
+                                  <span>{tx.subject}</span>
+                                  {tx.tag && (
+                                    <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${tx.tagColor || 'bg-slate-200'}`}>
+                                      {tx.tag}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[11px] text-[#41493e]">{tx.subtext}</span>
+                              </div>
+                            </td>
+
+                            <td className="py-3 px-4 whitespace-nowrap text-[#111c2d] font-semibold">
+                              {tx.quantity}
+                            </td>
+
+                            <td className={`py-3 px-4 whitespace-nowrap text-right font-extrabold text-[15px] ${
+                              tx.amount > 0 ? 'text-[#00450d]' : 'text-[#6c2200]'
+                            }`}>
+                              {tx.amount > 0 ? `+Rp ${tx.amount.toLocaleString('id-ID')}` : `-Rp ${Math.abs(tx.amount).toLocaleString('id-ID')}`}
+                            </td>
+
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                <span className={`w-2 h-2 rounded-full ${tx.amount > 0 ? 'bg-[#1b5e20]' : 'bg-[#006b5f]'}`}></span>
+                                <span className="text-[12px] font-semibold text-[#111c2d]">{tx.status}</span>
+                              </div>
+                            </td>
+
+                            <td className="py-3 px-4 whitespace-nowrap text-center">
+                              <button 
+                                onClick={() => setSelectedReceipt(tx)}
+                                className="p-1.5 rounded-lg bg-[#f0f3ff] hover:bg-[#dee8ff] text-[#006b5f] transition-colors border border-slate-200"
+                                title="Lihat Bukti Nota"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>

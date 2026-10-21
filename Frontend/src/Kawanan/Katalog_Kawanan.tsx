@@ -8,6 +8,7 @@ interface KatalogKawananProps {
 
 interface CowRecord {
   id: string;
+  dbId: number;
   rfid: string;
   name: string;
   breed: string;
@@ -29,150 +30,96 @@ interface CowRecord {
   photoUrl: string;
 }
 
-const INITIAL_HERD_DATA: CowRecord[] = [
-  {
-    id: '#12',
-    rfid: 'RF-012',
-    name: 'Melati',
-    breed: 'FH Murni • Rembangan',
-    barn: 'Kandang A-04',
-    stall: 'Stall Palungan 04',
-    status: 'Laktasi',
-    statusLabel: 'Laktasi Peak',
-    dim: 42,
-    dimLabel: 'Periode Awal',
-    weight: 545,
-    bcs: 3.25,
-    milkYield: 16.4,
-    morningYield: 9.1,
-    afternoonYield: 7.3,
-    cnnStatus: 'Normal / Sehat',
-    cnnAccuracy: '98.9%',
-    iofc: 181100,
-    iofcSurplus: 'Surplus +14%',
-    photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCGfiaudLbxFA6x52WZVpYpLFM5NeNnCFy3zJrRs5EVAVtvQEddWySvEb-oQmg6Jw2ogxy6Wxz4Z7yZsTn9q2Vi3_4IagNmrd6B_fXI_svoZsV-52TBlo2cxWnWMGL7kBPiYd3rG3FXmd7H7l_oKxuN8YWe_rsaB--bQ-Wg54lbbk1euLjInKZ9jT_b8QIs0FbUqgkITi3dixcTFS4b9d2KqPiJ_0QwOAk2iUUBeyg7ysHLmHom5Ugk'
-  },
-  {
-    id: '#04',
-    rfid: 'RF-004',
-    name: 'Mawar',
-    breed: 'FH Grade-A • Laktasi 3',
-    barn: 'Kandang A-02',
-    stall: 'Stall Palungan 02',
-    status: 'Laktasi',
-    statusLabel: 'Laktasi 3',
-    dim: 142,
-    dimLabel: 'Fase Pertengahan',
-    weight: 520,
-    bcs: 3.10,
-    milkYield: 18.6,
-    morningYield: 10.2,
-    afternoonYield: 8.4,
-    cnnStatus: 'Pulih Total / Negatif',
-    cnnAccuracy: 'CMT: Normal',
-    iofc: 192000,
-    iofcSurplus: 'Surplus +18%',
-    photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDFK4CwEbDpfw56ZBVQgw1xB1Dal0yUv8nZmXhx9mXxJlhErqfetLBkroqT8_JhP2tz5QBSNJdZk5iqsK1M5a36_bx6eKw4qhJB9MI_eMaMKEXPc1XBRXx2SZZzM4QnZM4WNFNXUhIqHK0nwJJm9vVXKUsUNbhnI_1zS_2GF00UZb2R2PWEgbk-edolueyE2Kxmw2bwcHlcb6vCPLzb7aKbJMmtC_LKPcx_EBMToxct32SP4jCXdeFe'
-  },
-  {
-    id: '#07',
-    rfid: 'RF-019',
-    name: 'Cantik',
-    breed: 'FH Indukan Dara • Prime',
-    barn: 'Kandang A-08',
-    stall: 'Stall Palungan 08',
-    status: 'Laktasi',
-    statusLabel: 'Laktasi 1 Peak',
-    dim: 45,
-    dimLabel: 'Yield Tertinggi',
-    weight: 510,
-    bcs: 3.00,
-    milkYield: 19.2,
-    morningYield: 10.8,
-    afternoonYield: 8.4,
-    cnnStatus: 'Sehat Prima',
-    cnnAccuracy: '99.1%',
-    iofc: 195400,
-    iofcSurplus: 'Top Performer',
-    photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAOAHyJDLBaYxkUFsG17hubwvL2zhDHvyf35dkX5xW6dLcIW1Ac0pVKvabrEh3zNqZQMf97dAEVWMDa3YuM24zWsPOOW2D_iUm7KFwRPJU861DCL6Rhvb9i_WG00c4dXZ1_kMcY_hzzPJxM7ZkrMw2zAovJUtgz3M5FtzqY42cCf5bkaRIOGCUql1fkOwWcJMJKuWwODZPtrce-1IHaJxk4-ct7XKJjZ8LXTXMvYaQvvwdOmO0_z4Tb'
-  },
-  {
-    id: '#18',
-    rfid: 'RF-018',
-    name: 'Sekar',
-    breed: 'FH Murni • Rembangan',
-    barn: 'Kandang A-06',
-    stall: 'Stall Palungan 06',
-    status: 'Laktasi',
-    statusLabel: 'Laktasi 2',
-    dim: 98,
-    dimLabel: 'Fase Awal',
-    weight: 530,
-    bcs: 3.20,
-    milkYield: 17.5,
-    morningYield: 9.6,
-    afternoonYield: 7.9,
-    cnnStatus: 'Normal (SCC < 110k)',
-    cnnAccuracy: '98.5%',
-    iofc: 176000,
-    iofcSurplus: 'Optimal',
-    photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDJeeagUTxManEPE90Mm61v2lavowmVFMmcYo9U93IvVDAgNSarfNFX52H7gMQuYTd5DqOdxKTEo_K-0dbyPjKs4JWAs9RdeCMwaq4KeH-ieC1FzNayHt0FqGkhmGXYwIy7HHE3TvsKSgd9-GBGwX_YkQLAg4D2VuQIIx9QqAIp_G2p-_z0jg3XToVNQp5tOGOrN56s_9K4mgBtcACuf6zKww6Sel2Wh_8v3Nk9WQVRq6am5HA51eFN'
-  },
-  {
-    id: '#21',
-    rfid: 'RF-021',
-    name: 'Bunga',
-    breed: 'FH Silangan • Bunting',
-    barn: 'Kandang B-02',
-    stall: 'Stall Khusus 02',
-    status: 'Bunting',
-    statusLabel: 'Bunting 7 Bulan',
-    dim: 260,
-    dimLabel: 'Fase Akhir',
-    weight: 560,
-    bcs: 3.40,
-    milkYield: 11.2,
-    morningYield: 6.2,
-    afternoonYield: 5.0,
-    cnnStatus: 'Transisi Kering',
-    cnnAccuracy: '98.0%',
-    iofc: 124000,
-    iofcSurplus: 'Fase Pemulihan',
-    photoUrl: 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&w=200&q=80'
-  },
-  {
-    id: '#25',
-    rfid: 'RF-025',
-    name: 'Srikandi',
-    breed: 'FH Indukan • Pra-Lahir',
-    barn: 'Kandang B-05',
-    stall: 'Stall Bersalin 05',
-    status: 'Kering',
-    statusLabel: 'Kering Kandang',
-    dim: 300,
-    dimLabel: 'Periode Kering',
-    weight: 585,
-    bcs: 3.50,
-    milkYield: 0,
-    morningYield: 0,
-    afternoonYield: 0,
-    cnnStatus: 'Sehat (Dry Cow)',
-    cnnAccuracy: '100%',
-    iofc: 0,
-    iofcSurplus: 'Persiapan Partus',
-    photoUrl: 'https://images.unsplash.com/photo-1527153857715-3908f2ae5e81?auto=format&fit=crop&w=200&q=80'
-  }
-];
+import { useCows } from '../hooks/useSupabaseData';
 
 export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<'Semua' | 'Laktasi' | 'Bunting' | 'Kering' | 'Karantina'>('Semua');
+  const [activeCategory, setActiveCategory] = useState<'Semua' | 'Laktasi' | 'Bunting' | 'Kering' | 'Karantina' | 'Arsip'>('Semua');
+
+  const { cows: dbCows, archivedCows, loading, addCow, deleteCow, restoreCow } = useCows();
+
+  // Modals & form state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [cowToDelete, setCowToDelete] = useState<CowRecord | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const [newCow, setNewCow] = useState({
+    nama: '',
+    eartag: '',
+    ras: 'Friesian Holstein (FH)',
+    lokasi_kandang: 'Kandang A-01',
+    fase_laktasi: 'Laktasi',
+    status_kesehatan: 'Sehat',
+    berat_badan: '510',
+    skor_bcs: '3.25',
+    rerata_produksi_harian: '18.5',
+    catatan: '',
+    foto_profil_url: 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&w=600&q=80',
+  });
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  const mapCowToRecord = (c: any): CowRecord => {
+    const s = c.raw;
+    const weight = Number(s.berat_badan) || 500;
+    const bcs = Number(s.skor_bcs) || 3.2;
+    const milkYield = Number(s.rerata_produksi_harian) || 0;
+    const morningYield = Number((milkYield * 0.55).toFixed(1));
+    const afternoonYield = Number((milkYield * 0.45).toFixed(1));
+    
+    const fase = (s.fase_laktasi || '').toLowerCase();
+    let status: 'Laktasi' | 'Bunting' | 'Kering' | 'Karantina' = 'Laktasi';
+    if (fase.includes('kering')) status = 'Kering';
+    else if (fase.includes('bunting')) status = 'Bunting';
+    else if ((s.status_kesehatan || '').toLowerCase().includes('karantina') || (s.lokasi_kandang || '').toLowerCase().includes('karantina')) {
+      status = 'Karantina';
+    }
+
+    const iofc = Math.max(0, Math.round(milkYield * 14000 - 52000));
+
+    return {
+      id: c.number,
+      dbId: c.dbId,
+      rfid: `RF-${c.id.replace('#', '').padStart(3, '0')}`,
+      name: c.name,
+      breed: s.ras || 'Friesian Holstein (FH)',
+      barn: s.lokasi_kandang || 'Kandang A',
+      stall: `Stall Palungan ${c.id}`,
+      status,
+      statusLabel: s.fase_laktasi || 'Laktasi Aktif',
+      dim: 65,
+      dimLabel: s.status_kesehatan || 'Sehat Prima',
+      weight,
+      bcs,
+      milkYield,
+      morningYield,
+      afternoonYield,
+      cnnStatus: c.isHealthy ? 'Normal / Sehat' : (s.status_kesehatan || 'Perlu Cek'),
+      cnnAccuracy: c.isHealthy ? '98.9%' : 'Observasi',
+      iofc,
+      iofcSurplus: iofc > 150000 ? 'Surplus Optimal' : 'Stabil',
+      photoUrl: c.image,
+    };
+  };
+
+  const herdData: CowRecord[] = useMemo(() => {
+    return dbCows.map(mapCowToRecord);
+  }, [dbCows]);
+
+  const archivedHerdData: CowRecord[] = useMemo(() => {
+    return archivedCows.map(mapCowToRecord);
+  }, [archivedCows]);
 
   const filteredCattle = useMemo(() => {
-    return INITIAL_HERD_DATA.filter((cow) => {
+    const source = activeCategory === 'Arsip' ? archivedHerdData : herdData;
+    return source.filter((cow) => {
       const matchesCategory =
-        activeCategory === 'Semua' ? true : cow.status === activeCategory;
+        activeCategory === 'Semua' || activeCategory === 'Arsip' ? true : cow.status === activeCategory;
 
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
@@ -184,7 +131,7 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
 
       return matchesCategory && matchesSearch;
     });
-  }, [searchQuery, activeCategory]);
+  }, [herdData, archivedHerdData, searchQuery, activeCategory]);
 
   return (
     <div className="bg-[#f9f9ff] font-sans text-[#111c2d] min-h-screen antialiased flex flex-col lg:flex-row">
@@ -286,8 +233,8 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
               </button>
 
               <button 
-                onClick={() => alert('Formulir Pendaftaran Sapi Baru (Ear Tag & RFID) akan dibuka')}
-                className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#1b5e20] text-white hover:bg-[#00450d] transition-transform active:scale-95 text-[13px] font-bold shadow-sm"
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#1b5e20] text-white hover:bg-[#00450d] transition-transform active:scale-95 text-[13px] font-bold shadow-sm cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[20px]">add_circle</span>
                 <span>+ Tambah Sapi Baru</span>
@@ -304,7 +251,7 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                   <span className="material-symbols-outlined text-[#006b5f] text-[20px]">dataset</span>
                   <span className="text-[12px] font-bold text-[#41493e] uppercase tracking-wider">Segmentasi Kawanan Ternak</span>
                 </div>
-                <span className="text-[12px] text-[#717a6d]">Database Sinkron: <strong>28 Ekor</strong></span>
+                <span className="text-[12px] text-[#717a6d]">Database Sinkron: <strong>{herdData.length} Ekor</strong></span>
               </div>
 
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -315,7 +262,7 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                   }`}
                 >
                   <span>Semua</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeCategory === 'Semua' ? 'bg-white/20' : 'bg-slate-200'}`}>28</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeCategory === 'Semua' ? 'bg-white/20' : 'bg-slate-200'}`}>{herdData.length}</span>
                 </button>
 
                 <button 
@@ -325,7 +272,9 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                   }`}
                 >
                   <span>Laktasi Aktif</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeCategory === 'Laktasi' ? 'bg-white/20' : 'bg-slate-200'}`}>18</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeCategory === 'Laktasi' ? 'bg-white/20' : 'bg-slate-200'}`}>
+                    {herdData.filter(c => c.status === 'Laktasi').length}
+                  </span>
                 </button>
 
                 <button 
@@ -335,7 +284,9 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                   }`}
                 >
                   <span>Bunting</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeCategory === 'Bunting' ? 'bg-white/20' : 'bg-slate-200'}`}>4</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeCategory === 'Bunting' ? 'bg-white/20' : 'bg-slate-200'}`}>
+                    {herdData.filter(c => c.status === 'Bunting').length}
+                  </span>
                 </button>
 
                 <button 
@@ -345,7 +296,9 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                   }`}
                 >
                   <span>Kering / Dara</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeCategory === 'Kering' ? 'bg-white/20' : 'bg-slate-200'}`}>6</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeCategory === 'Kering' ? 'bg-white/20' : 'bg-slate-200'}`}>
+                    {herdData.filter(c => c.status === 'Kering').length}
+                  </span>
                 </button>
 
                 <button 
@@ -355,7 +308,22 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                   }`}
                 >
                   <span>Karantina</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeCategory === 'Karantina' ? 'bg-white/20' : 'bg-slate-200'}`}>0</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeCategory === 'Karantina' ? 'bg-white/20' : 'bg-slate-200'}`}>
+                    {herdData.filter(c => c.status === 'Karantina').length}
+                  </span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveCategory('Arsip')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-bold whitespace-nowrap transition-all ${
+                    activeCategory === 'Arsip' ? 'bg-[#ba1a1a] text-white shadow-sm' : 'bg-[#ffdad6]/60 text-[#ba1a1a] hover:bg-[#ffdad6]'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">archive</span>
+                  <span>Arsip / Terhapus</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeCategory === 'Arsip' ? 'bg-white/20' : 'bg-red-200/60'}`}>
+                    {archivedHerdData.length}
+                  </span>
                 </button>
               </div>
             </div>
@@ -365,7 +333,7 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
               <div className="flex items-center justify-between">
                 <span className="text-[12px] font-bold text-[#41493e] uppercase tracking-wider">Statistik Ringkas Kawanan</span>
                 <span className="flex items-center gap-1 text-[11px] bg-[#8df5e4] text-[#00201c] px-2.5 py-0.5 rounded-full font-bold">
-                  <span className="material-symbols-outlined text-[13px]">verified</span> Rembangan Valid
+                  <span className="material-symbols-outlined text-[13px]">verified</span> Supabase Sync
                 </span>
               </div>
 
@@ -380,13 +348,17 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
 
                 <div className="bg-[#f0f3ff] p-2.5 rounded-xl border border-slate-200/50 flex flex-col">
                   <span className="text-[10px] text-[#717a6d]">Rata-rata BCS</span>
-                  <span className="text-[16px] text-[#111c2d] font-black mt-0.5">3.18 <span className="text-[10px] font-normal text-slate-400">/ 5</span></span>
+                  <span className="text-[16px] text-[#111c2d] font-black mt-0.5">
+                    {herdData.length > 0 ? (herdData.reduce((acc, c) => acc + c.bcs, 0) / herdData.length).toFixed(2) : '3.20'} <span className="text-[10px] font-normal text-slate-400">/ 5</span>
+                  </span>
                   <span className="text-[10px] text-[#00450d] font-bold">Ideal</span>
                 </div>
 
                 <div className="bg-[#f0f3ff] p-2.5 rounded-xl border border-slate-200/50 flex flex-col">
                   <span className="text-[10px] text-[#717a6d]">Rata-rata Susu</span>
-                  <span className="text-[16px] text-[#006b5f] font-black mt-0.5">15.8 L</span>
+                  <span className="text-[16px] text-[#006b5f] font-black mt-0.5">
+                    {herdData.length > 0 ? (herdData.reduce((acc, c) => acc + c.milkYield, 0) / herdData.length).toFixed(1) : '18.2'} L
+                  </span>
                   <span className="text-[10px] text-[#717a6d]">ekor / hari</span>
                 </div>
               </div>
@@ -419,7 +391,7 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
               </div>
               <div className="flex items-center gap-2 text-[12px]">
                 <span className="bg-white px-3 py-1 rounded-md font-semibold text-[#41493e] border border-slate-200">
-                  Menampilkan {filteredCattle.length} dari 28 Ekor
+                  Menampilkan {filteredCattle.length} dari {herdData.length} Ekor
                 </span>
               </div>
             </div>
@@ -443,7 +415,23 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-[13px]">
-                  {filteredCattle.map((cow) => (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={11} className="py-12 text-center text-[#717a6d]">
+                        <span className="material-symbols-outlined text-[32px] animate-spin text-[#006b5f]">progress_activity</span>
+                        <p className="text-xs mt-2 font-semibold">Memuat kawanan sapi dari Supabase...</p>
+                      </td>
+                    </tr>
+                  ) : filteredCattle.length === 0 ? (
+                    <tr>
+                      <td colSpan={11} className="py-12 text-center text-[#717a6d]">
+                        <span className="material-symbols-outlined text-[36px] text-[#717a6d]">cruelty_free</span>
+                        <p className="text-xs font-bold text-[#111c2d] mt-2">Tidak ada sapi ditemukan</p>
+                        <p className="text-[11px] text-[#717a6d]">Coba ganti filter kategori atau kata kunci pencarian.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCattle.map((cow) => (
                     <tr key={cow.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3 px-4 align-middle">
                         <div className="flex flex-col">
@@ -554,16 +542,307 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                           >
                             <span className="material-symbols-outlined text-[13px]">psychology</span> Pakan
                           </button>
+                          {activeCategory === 'Arsip' ? (
+                            <button 
+                              onClick={async () => {
+                                try {
+                                  await restoreCow(cow.dbId);
+                                  showToast(`Sapi ${cow.name} (${cow.id}) berhasil dipulihkan ke kawanan aktif!`);
+                                } catch (err: any) {
+                                  showToast('Gagal memulihkan: ' + (err.message || 'Error'));
+                                }
+                              }}
+                              className="px-2.5 py-1 rounded-full bg-[#acf4a4] hover:bg-[#8ee485] text-[#002203] text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                              title={`Pulihkan Sapi ${cow.name} (${cow.id}) ke Kawanan Aktif`}
+                            >
+                              <span className="material-symbols-outlined text-[14px]">unarchive</span> Pulihkan
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => setCowToDelete(cow)}
+                              className="p-1.5 rounded-full hover:bg-[#ffdad6] text-[#ba1a1a] transition-colors border border-transparent hover:border-[#ffdad6] cursor-pointer"
+                              title={`Arsipkan Sapi ${cow.name} (${cow.id})`}
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  ))
+                )}
                 </tbody>
               </table>
             </div>
           </div>
         </main>
       </div>
+
+      {/* TOAST NOTIFICATION */}
+      {toastMsg && (
+        <div className="fixed bottom-24 lg:bottom-10 right-6 z-50 bg-[#111c2d] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-bottom duration-200">
+          <span className="material-symbols-outlined text-[#8df5e4] text-[20px]">check_circle</span>
+          <span className="text-sm font-semibold">{toastMsg}</span>
+        </div>
+      )}
+
+      {/* MODAL INPUT TAMBAH SAPI BARU (SUPABASE PERSISTENCE) */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#acf4a4]/40 text-[#00450d] flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[24px]">add_circle</span>
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#111c2d]">Tambah Sapi Baru</h3>
+                  <p className="text-xs text-[#717a6d]">Data langsung tersimpan di cloud Supabase</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body Form */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newCow.nama || !newCow.eartag) {
+                  showToast('Nama sapi dan nomor eartag wajib diisi!');
+                  return;
+                }
+                setIsSubmitting(true);
+                try {
+                  await addCow({
+                    nama: newCow.nama,
+                    eartag: newCow.eartag,
+                    ras: newCow.ras,
+                    lokasi_kandang: newCow.lokasi_kandang,
+                    fase_laktasi: newCow.fase_laktasi,
+                    status_kesehatan: newCow.status_kesehatan,
+                    berat_badan: Number(newCow.berat_badan) || 500,
+                    skor_bcs: Number(newCow.skor_bcs) || 3.25,
+                    rerata_produksi_harian: Number(newCow.rerata_produksi_harian) || 18.0,
+                    catatan: newCow.catatan || 'Sapi baru didaftarkan ke kawanan.',
+                    foto_profil_url: newCow.foto_profil_url,
+                  });
+                  showToast(`Sapi ${newCow.nama} (#${newCow.eartag}) berhasil didaftarkan ke Supabase!`);
+                  setShowAddModal(false);
+                  setNewCow({
+                    nama: '',
+                    eartag: '',
+                    ras: 'Friesian Holstein (FH)',
+                    lokasi_kandang: 'Kandang Laktasi A',
+                    fase_laktasi: 'Laktasi',
+                    status_kesehatan: 'Sehat',
+                    berat_badan: '510',
+                    skor_bcs: '3.25',
+                    rerata_produksi_harian: '18.5',
+                    catatan: '',
+                    foto_profil_url: 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&w=600&q=80',
+                  });
+                } catch (err: any) {
+                  showToast('Gagal menyimpan sapi: ' + (err.message || 'Error'));
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+              className="p-5 flex flex-col gap-4 text-xs"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-[#111c2d]">Nama Sapi <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={newCow.nama}
+                    onChange={(e) => setNewCow({ ...newCow, nama: e.target.value })}
+                    placeholder="Contoh: Rembulan"
+                    className="p-2.5 rounded-xl border border-slate-200 focus:border-[#00450d] outline-none text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-[#111c2d]">Nomor Eartag / ID <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={newCow.eartag}
+                    onChange={(e) => setNewCow({ ...newCow, eartag: e.target.value })}
+                    placeholder="Contoh: 30"
+                    className="p-2.5 rounded-xl border border-slate-200 focus:border-[#00450d] outline-none text-sm font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-[#111c2d]">Ras Sapi</label>
+                  <select
+                    value={newCow.ras}
+                    onChange={(e) => setNewCow({ ...newCow, ras: e.target.value })}
+                    className="p-2.5 rounded-xl border border-slate-200 focus:border-[#00450d] outline-none text-xs bg-white"
+                  >
+                    <option value="Friesian Holstein (FH)">Friesian Holstein (FH)</option>
+                    <option value="FH Cross Lokal">FH Cross Lokal</option>
+                    <option value="Jersey Murni">Jersey Murni</option>
+                    <option value="Peranakan Ongole">Peranakan Ongole</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-[#111c2d]">Lokasi Kandang</label>
+                  <select
+                    value={newCow.lokasi_kandang}
+                    onChange={(e) => setNewCow({ ...newCow, lokasi_kandang: e.target.value })}
+                    className="p-2.5 rounded-xl border border-slate-200 focus:border-[#00450d] outline-none text-xs bg-white"
+                  >
+                    <option value="Kandang Laktasi A">Kandang Laktasi A</option>
+                    <option value="Kandang Laktasi B">Kandang Laktasi B</option>
+                    <option value="Kandang Karantina Blok B">Kandang Karantina Blok B</option>
+                    <option value="Kandang Dara & Kering">Kandang Dara &amp; Kering</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-[#111c2d]">Fase Fisiologis</label>
+                  <select
+                    value={newCow.fase_laktasi}
+                    onChange={(e) => setNewCow({ ...newCow, fase_laktasi: e.target.value })}
+                    className="p-2.5 rounded-xl border border-slate-200 focus:border-[#00450d] outline-none text-xs bg-white"
+                  >
+                    <option value="Laktasi">Laktasi Aktif</option>
+                    <option value="Bunting">Bunting</option>
+                    <option value="Periode Kering">Periode Kering</option>
+                    <option value="Dara">Dara</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-[#111c2d]">Status Kesehatan</label>
+                  <select
+                    value={newCow.status_kesehatan}
+                    onChange={(e) => setNewCow({ ...newCow, status_kesehatan: e.target.value })}
+                    className="p-2.5 rounded-xl border border-slate-200 focus:border-[#00450d] outline-none text-xs bg-white"
+                  >
+                    <option value="Sehat">100% Sehat (Grade A)</option>
+                    <option value="Observasi">Observasi Rutin</option>
+                    <option value="Karantina Mastitis">Karantina Mastitis</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-[#111c2d]">Bobot (kg)</label>
+                  <input
+                    type="number"
+                    value={newCow.berat_badan}
+                    onChange={(e) => setNewCow({ ...newCow, berat_badan: e.target.value })}
+                    className="p-2.5 rounded-xl border border-slate-200 focus:border-[#00450d] outline-none text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-[#111c2d]">Produksi (L/hari)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={newCow.rerata_produksi_harian}
+                    onChange={(e) => setNewCow({ ...newCow, rerata_produksi_harian: e.target.value })}
+                    className="p-2.5 rounded-xl border border-slate-200 focus:border-[#00450d] outline-none text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="font-bold text-[#111c2d]">Skor BCS (1-5)</label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={newCow.skor_bcs}
+                    onChange={(e) => setNewCow({ ...newCow, skor_bcs: e.target.value })}
+                    className="p-2.5 rounded-xl border border-slate-200 focus:border-[#00450d] outline-none text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="font-bold text-[#111c2d]">Catatan Khusus</label>
+                <textarea
+                  value={newCow.catatan}
+                  onChange={(e) => setNewCow({ ...newCow, catatan: e.target.value })}
+                  placeholder="Keterangan silsilah, riwayat vaksin, atau pola pakan khusus..."
+                  rows={2}
+                  className="p-2.5 rounded-xl border border-slate-200 focus:border-[#00450d] outline-none text-xs"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2.5 rounded-xl bg-[#00450d] hover:bg-[#1b5e20] text-white font-bold shadow-md active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px]">save</span>
+                  <span>{isSubmitting ? 'Menyimpan...' : 'Simpan ke Supabase'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI SOFT DELETE SAPI */}
+      {cowToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 flex flex-col gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#ffdad6] text-[#ba1a1a] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[28px]">archive</span>
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-[#111c2d]">Arsipkan Sapi {cowToDelete.name} ({cowToDelete.id})?</h3>
+              <p className="text-xs text-[#717a6d] mt-1.5 leading-relaxed">
+                Sapi ini akan <strong>disembunyikan dari kawanan aktif (soft delete)</strong>. Semua riwayat perahan, rekam medis, dan transaksi kas di Supabase <strong>tetap tersimpan aman</strong> dan tidak akan hilang permanen.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setCowToDelete(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 text-xs transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await deleteCow(cowToDelete.dbId);
+                    showToast(`Sapi ${cowToDelete.name} (${cowToDelete.id}) berhasil diarsipkan.`);
+                    setCowToDelete(null);
+                  } catch (e: any) {
+                    showToast('Gagal mengarsipkan: ' + (e.message || 'Error'));
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-[#ba1a1a] hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
+              >
+                Ya, Arsipkan Sapi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Drawer */}
       <MobileDrawer

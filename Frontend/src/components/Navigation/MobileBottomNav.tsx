@@ -18,7 +18,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     },
     {
       id: 'deteksi',
-      label: 'YOLO v26',
+      label: 'Cek Ambing',
       icon: 'photo_camera',
       activeScreens: [
         'deteksi',
@@ -31,19 +31,19 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     },
     {
       id: 'prediksi',
-      label: 'Prediksi',
+      label: 'Susu & Pakan',
       icon: 'trending_up',
       activeScreens: ['prediksi', 'simulasi_whatif'],
     },
     {
       id: 'katalog',
-      label: 'Kawanan',
+      label: 'Data Sapi',
       icon: 'pets',
       activeScreens: ['katalog', 'ringkasan_produksi_kawanan', 'profil_sapi'],
     },
     {
       id: 'kas',
-      label: 'Kas Mikro',
+      label: 'Uang Kas',
       icon: 'account_balance_wallet',
       activeScreens: [
         'kas',

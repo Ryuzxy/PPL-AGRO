@@ -20,20 +20,17 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
   const [currentFacing, setCurrentFacing] = useState<'environment' | 'user'>('environment');
   const [activeMode, setActiveMode] = useState<'yolo_box' | 'segmentation' | 'thermal'>('yolo_box');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  
+
   // Camera & Video Stream State
   const [cameraActive, setCameraActive] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
   const [showShutterFlash, setShowShutterFlash] = useState<boolean>(false);
-
-  // YOLO v26 Detection Settings & Telemetry
-  const [confidenceThreshold, setConfidenceThreshold] = useState<number>(0.75);
   const [showBoxes, setShowBoxes] = useState<boolean>(true);
-  const [showLabels, setShowLabels] = useState<boolean>(true);
-  const [selectedCowId, setSelectedCowId] = useState<string>(cowId);
-  const [selectedCowName, setSelectedCowName] = useState<string>(cowName);
+  const [selectedCowId] = useState<string>(cowId);
+  const [selectedCowName] = useState<string>(cowName);
+
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -55,14 +52,14 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
       const ctx = new AudioCtx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      
+
       osc.type = 'sine';
       osc.frequency.setValueAtTime(880, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(320, ctx.currentTime + 0.1);
-      
+
       gain.gain.setValueAtTime(0.25, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-      
+
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
@@ -122,8 +119,8 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
         err.name === 'NotAllowedError'
           ? 'Izin kamera ditolak. Silakan izinkan akses kamera di browser Anda.'
           : err.name === 'NotFoundError'
-          ? 'Perangkat kamera tidak ditemukan.'
-          : `Tidak dapat membuka kamera: ${err.message || 'Error hardware'}`
+            ? 'Perangkat kamera tidak ditemukan.'
+            : `Tidak dapat membuka kamera: ${err.message || 'Error hardware'}`
       );
     }
   }, []);
@@ -360,8 +357,9 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
                 <span className="hidden sm:inline">Ganti Ternak</span>
               </button>
 
-              <div className="w-8 h-8 rounded-full bg-[#1b5e20] text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                #{selectedCowId}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1b5e20] text-white text-xs font-bold shadow-xs">
+                <span>#{selectedCowId}</span>
+                <span className="text-[#acf4a4] font-medium hidden sm:inline">({selectedCowName})</span>
               </div>
             </div>
           </div>
@@ -395,9 +393,8 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
               <button
                 type="button"
                 onClick={toggleFlash}
-                className={`h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all ${
-                  isFlashOn ? 'bg-[#00450d] text-white shadow-xs' : 'bg-[#e7eeff] text-[#111c2d] hover:bg-[#dee8ff]'
-                }`}
+                className={`h-9 px-3 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all ${isFlashOn ? 'bg-[#00450d] text-white shadow-xs' : 'bg-[#e7eeff] text-[#111c2d] hover:bg-[#dee8ff]'
+                  }`}
                 title="Lampu Kilat / Torch"
               >
                 <span className="material-symbols-outlined text-[18px]">
@@ -423,11 +420,10 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
             <button
               type="button"
               onClick={() => setMode('yolo_box')}
-              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-                activeMode === 'yolo_box'
+              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${activeMode === 'yolo_box'
                   ? 'bg-[#00450d] text-white shadow-sm'
                   : 'text-[#41493e] hover:text-[#111c2d] hover:bg-white/50'
-              }`}
+                }`}
             >
               <span className="material-symbols-outlined text-[17px]">crop_free</span>
               <span className="truncate">YOLOv26 Bounding Box</span>
@@ -436,11 +432,10 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
             <button
               type="button"
               onClick={() => setMode('segmentation')}
-              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-                activeMode === 'segmentation'
+              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${activeMode === 'segmentation'
                   ? 'bg-[#00450d] text-white shadow-sm'
                   : 'text-[#41493e] hover:text-[#111c2d] hover:bg-white/50'
-              }`}
+                }`}
             >
               <span className="material-symbols-outlined text-[17px]">grain</span>
               <span className="truncate">YOLOv26-Seg Mask</span>
@@ -449,11 +444,10 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
             <button
               type="button"
               onClick={() => setMode('thermal')}
-              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-                activeMode === 'thermal'
+              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all ${activeMode === 'thermal'
                   ? 'bg-[#00450d] text-white shadow-sm'
                   : 'text-[#41493e] hover:text-[#111c2d] hover:bg-white/50'
-              }`}
+                }`}
             >
               <span className="material-symbols-outlined text-[17px]">thermostat</span>
               <span className="truncate">FLIR Thermal AI</span>
@@ -468,13 +462,12 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
               autoPlay
               playsInline
               muted
-              className={`w-full h-full object-cover transition-all duration-300 ${
-                activeMode === 'thermal'
+              className={`w-full h-full object-cover transition-all duration-300 ${activeMode === 'thermal'
                   ? 'contrast-150 saturate-200 hue-rotate-180 filter'
                   : isFlashOn
-                  ? 'brightness-125 contrast-110'
-                  : ''
-              }`}
+                    ? 'brightness-125 contrast-110'
+                    : ''
+                }`}
             />
 
             {/* Offline / No Permission Fallback Screen */}
@@ -651,11 +644,10 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
                 setShowBoxes(!showBoxes);
                 showToast(!showBoxes ? 'Bounding Boxes Ditampilkan' : 'Bounding Boxes Disembunyikan');
               }}
-              className={`flex-1 h-13 rounded-2xl shadow-sm flex items-center justify-center gap-2 text-xs font-bold active:scale-95 transition-all border ${
-                showBoxes
+              className={`flex-1 h-13 rounded-2xl shadow-sm flex items-center justify-center gap-2 text-xs font-bold active:scale-95 transition-all border ${showBoxes
                   ? 'bg-[#1b5e20] text-white border-[#1b5e20]'
                   : 'bg-white text-[#41493e] border-[#dee8ff] hover:bg-[#f0f3ff]'
-              }`}
+                }`}
             >
               <span className="material-symbols-outlined text-[20px]">
                 {showBoxes ? 'visibility' : 'visibility_off'}

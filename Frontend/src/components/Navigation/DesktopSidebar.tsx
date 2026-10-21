@@ -74,7 +74,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             }`}
           >
             <span className="material-symbols-outlined text-[20px]">photo_camera</span>
-            <span>Deteksi YOLO v26</span>
+            <span>Cek Ambing (Kamera)</span>
           </button>
 
           <button
@@ -86,7 +86,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             }`}
           >
             <span className="material-symbols-outlined text-[20px]">trending_up</span>
-            <span>Prediksi XGBoost</span>
+            <span>Perkiraan Susu & Pakan</span>
           </button>
 
           <button
@@ -98,7 +98,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             }`}
           >
             <span className="material-symbols-outlined text-[20px]">pets</span>
-            <span>Katalog Ternak</span>
+            <span>Daftar Semua Sapi</span>
           </button>
 
           <button
@@ -110,14 +110,14 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             }`}
           >
             <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
-            <span>Buku Kas Mikro</span>
+            <span>Catatan Uang (Kas)</span>
           </button>
         </nav>
 
         {/* Clinical Quick Access for Desktop */}
         <div className="px-4 pt-4 mt-2">
           <div className="text-[11px] font-extrabold text-[#717a6d] uppercase px-2 py-1 tracking-wider">
-            Aksi Cepat Medis
+            Aksi Cepat Kandang
           </div>
           <div className="flex flex-col gap-0.5 mt-1">
             <button
@@ -127,7 +127,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
               }`}
             >
               <span className="material-symbols-outlined text-[17px] text-[#006b5f]">water_drop</span>
-              <span>Sesi Pemerahan</span>
+              <span>Perah Susu</span>
             </button>
             <button
               onClick={() => onNavigate?.('catat_pengobatan')}
@@ -136,7 +136,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
               }`}
             >
               <span className="material-symbols-outlined text-[17px] text-[#ba1a1a]">medical_services</span>
-              <span>Terapi Mastitis</span>
+              <span>Obat Radang Susu</span>
             </button>
             <button
               onClick={() => onNavigate?.('rapid_test')}
@@ -145,7 +145,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
               }`}
             >
               <span className="material-symbols-outlined text-[17px] text-[#007165]">biotech</span>
-              <span>Rapid Test SCC</span>
+              <span>Tes Cepat Susu (SCC)</span>
             </button>
           </div>
         </div>
@@ -156,17 +156,17 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         <div className="bg-[#f0f3ff] p-3 rounded-lg flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-[#41493e] uppercase tracking-wide">
-              Status Dual-AI Engine
+              Status Sistem AI
             </span>
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#006b5f] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#1b5e20]"></span>
             </span>
           </div>
-          <span className="text-[12px] text-[#111c2d] font-bold">YOLOv26 + XGBoost v2.4</span>
+          <span className="text-[12px] text-[#111c2d] font-bold">Kamera AI & Susu Aktif</span>
           <div className="flex items-center gap-1 text-[#1b5e20] text-[12px] font-semibold">
             <span className="material-symbols-outlined text-[15px]">sync_saved_locally</span>
-            <span>Live Synced Rembangan</span>
+            <span>Terhubung Kandang Rembangan</span>
           </div>
         </div>
 

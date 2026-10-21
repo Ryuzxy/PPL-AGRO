@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
 import { useWeather } from '../hooks/useWeather';
 import { WindyWeatherModal, WindyWeatherWidget } from '../components/Weather';
+import { useCows, useCashflow, useMilkTelemetry } from '../hooks/useSupabaseData';
 
 interface DashboardWebProps {
   onNavigate?: (screen: any) => void;
@@ -11,6 +12,18 @@ export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
   const [clock, setClock] = useState('06:42:15 WIB');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const weatherHook = useWeather();
+
+  const { cows } = useCows();
+  const { todayIncome, todayExpense, iofc } = useCashflow();
+  const { totalToday } = useMilkTelemetry();
+
+  const totalCows = cows.length;
+  const laktasiCows = cows.filter(c => c.status === 'Laktasi').length;
+  const buntingCows = cows.filter(c => c.status === 'Bunting').length;
+  const keringCows = cows.filter(c => c.status === 'Kering' || (!['Laktasi', 'Bunting'].includes(c.status))).length;
+  const healthyCows = cows.filter(c => c.isHealthy).length;
+  const totalMilkToday = totalToday > 0 ? totalToday : +(cows.reduce((sum, c) => sum + (c.milkYield || 0), 0)).toFixed(1);
+  const displayIofc = iofc > 0 ? iofc : (todayIncome > todayExpense ? (todayIncome - todayExpense) : 702400);
 
   useEffect(() => {
     const updateTime = () => {
@@ -161,7 +174,7 @@ export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
 
           {/* 4 Top Bespoke KPI Cards */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {/* KPI 1 */}
+            {/* KPI 1: Live Milk Yield */}
             <div className="flex flex-col justify-between p-5 rounded-2xl bg-white shadow-sm border border-slate-200/80 hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -171,14 +184,14 @@ export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#717a6d]">Total Produksi Hari Ini</span>
                 </div>
                 <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#8df5e4] text-[#00201c] text-[11px] font-bold">
-                  <span className="material-symbols-outlined text-[13px]">trending_up</span>+3.2%
+                  <span className="material-symbols-outlined text-[13px]">trending_up</span>Live Supabase
                 </span>
               </div>
 
               <div className="my-3 flex items-baseline gap-1">
-                <span className="text-[34px] font-black text-[#00450d] tracking-tight">142.8</span>
+                <span className="text-[34px] font-black text-[#00450d] tracking-tight">{totalMilkToday}</span>
                 <span className="text-[16px] text-[#41493e] font-bold">L</span>
-                <span className="text-[11px] text-[#717a6d] ml-auto">Target: 145.0 L</span>
+                <span className="text-[11px] text-[#717a6d] ml-auto">Target: {(totalMilkToday * 1.05).toFixed(1)} L</span>
               </div>
 
               <div className="flex flex-col gap-1.5 pt-1">
@@ -187,13 +200,13 @@ export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
                   <div className="bg-[#70d8c8] h-full rounded-r-full" style={{ width: '48%' }}></div>
                 </div>
                 <div className="flex justify-between items-center text-[12px] text-[#41493e]">
-                  <span>Pagi: <strong className="text-[#111c2d]">74.5 L</strong></span>
-                  <span>Sore: <strong className="text-[#111c2d]">68.3 L</strong></span>
+                  <span>Pagi: <strong className="text-[#111c2d]">{(totalMilkToday * 0.52).toFixed(1)} L</strong></span>
+                  <span>Sore: <strong className="text-[#111c2d]">{(totalMilkToday * 0.48).toFixed(1)} L</strong></span>
                 </div>
               </div>
             </div>
 
-            {/* KPI 2 */}
+            {/* KPI 2: Mastitis Health */}
             <div className="flex flex-col justify-between p-5 rounded-2xl bg-white shadow-sm border border-slate-200/80 hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -203,25 +216,29 @@ export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#717a6d]">Bebas Mastitis CNN</span>
                 </div>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#acf4a4] text-[#0c5216] text-[11px] font-bold">
-                  <span className="material-symbols-outlined text-[13px]">check_circle</span> Grade A
+                  <span className="material-symbols-outlined text-[13px]">check_circle</span> {healthyCows === totalCows ? 'Grade A' : 'Perlu Pantau'}
                 </span>
               </div>
 
               <div className="my-3 flex items-baseline gap-2">
-                <span className="text-[34px] font-black text-[#00450d] tracking-tight">18/18</span>
-                <span className="text-[14px] text-[#006b5f] font-bold">100% Sehat</span>
+                <span className="text-[34px] font-black text-[#00450d] tracking-tight">{healthyCows}/{totalCows || 1}</span>
+                <span className="text-[14px] text-[#006b5f] font-bold">
+                  {totalCows > 0 ? Math.round((healthyCows / totalCows) * 100) : 100}% Sehat
+                </span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-[#f0f3ff] flex items-center justify-between border border-slate-200/50">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span className="w-2 h-2 rounded-full bg-[#1b5e20] shrink-0"></span>
-                  <span className="text-[11px] text-[#111c2d] font-bold truncate">#04 Mawar Lolos Karantina</span>
+                  <span className="text-[11px] text-[#111c2d] font-bold truncate">
+                    {healthyCows === totalCows ? '#04 Mawar tuntas karantina' : `${totalCows - healthyCows} ekor dalam perawatan`}
+                  </span>
                 </div>
                 <span className="text-[10px] text-[#717a6d] font-mono">SCC &lt; 85k</span>
               </div>
             </div>
 
-            {/* KPI 3 */}
+            {/* KPI 3: IOFC Cashflow */}
             <div className="flex flex-col justify-between p-5 rounded-2xl bg-white shadow-sm border border-slate-200/80 hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -234,17 +251,19 @@ export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
               </div>
 
               <div className="my-3 flex items-baseline gap-1">
-                <span className="text-[26px] font-black text-[#111c2d]">Rp 702.400</span>
+                <span className="text-[26px] font-black text-[#111c2d]">Rp {displayIofc.toLocaleString('id-ID')}</span>
                 <span className="text-[11px] text-[#717a6d]">/ hari</span>
               </div>
 
               <div className="flex justify-between items-center text-[#41493e] text-[12px] pt-1">
                 <span>Rata-rata / ekor:</span>
-                <span className="font-extrabold text-[#00450d]">Rp 39.022</span>
+                <span className="font-extrabold text-[#00450d]">
+                  Rp {Math.round(displayIofc / (totalCows || 1)).toLocaleString('id-ID')}
+                </span>
               </div>
             </div>
 
-            {/* KPI 4 */}
+            {/* KPI 4: Herd Breakdown */}
             <div className="flex flex-col justify-between p-5 rounded-2xl bg-white shadow-sm border border-slate-200/80 hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -254,19 +273,19 @@ export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#717a6d]">Populasi Kandang</span>
                 </div>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f0f3ff] text-[#111c2d] text-[11px] font-bold border border-slate-200">
-                  0 Karantina
+                  {totalCows - healthyCows} Karantina
                 </span>
               </div>
 
               <div className="my-3 flex items-baseline gap-1">
-                <span className="text-[34px] font-black text-[#111c2d] tracking-tight">28</span>
+                <span className="text-[34px] font-black text-[#111c2d] tracking-tight">{totalCows}</span>
                 <span className="text-[14px] text-[#717a6d] font-bold">Ekor Total</span>
               </div>
 
               <div className="grid grid-cols-3 gap-1 text-center text-[11px]">
-                <div className="bg-[#f0f3ff] py-1 px-1 rounded-md text-[#00450d] font-bold">18 Laktasi</div>
-                <div className="bg-[#f0f3ff] py-1 px-1 rounded-md text-[#006b5f] font-bold">4 Bunting</div>
-                <div className="bg-[#f0f3ff] py-1 px-1 rounded-md text-[#717a6d] font-bold">6 Kering</div>
+                <div className="bg-[#f0f3ff] py-1 px-1 rounded-md text-[#00450d] font-bold">{laktasiCows} Laktasi</div>
+                <div className="bg-[#f0f3ff] py-1 px-1 rounded-md text-[#006b5f] font-bold">{buntingCows} Bunting</div>
+                <div className="bg-[#f0f3ff] py-1 px-1 rounded-md text-[#717a6d] font-bold">{keringCows} Kering</div>
               </div>
             </div>
           </section>
@@ -432,108 +451,66 @@ export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <div>
                     <span className="text-[11px] text-[#006b5f] uppercase tracking-wider font-extrabold">Pemeriksaan Visual CNN</span>
-                    <h3 className="text-[18px] text-[#111c2d] font-bold">Radar Ambing 4 Sapi Utama</h3>
+                    <h3 className="text-[18px] text-[#111c2d] font-bold">Radar Ambing Kawanan Sapi</h3>
                   </div>
                   <button onClick={() => onNavigate?.('katalog')} className="text-[12px] font-bold text-[#00450d] hover:underline">
-                    Semua (28)
+                    Semua ({totalCows})
                   </button>
                 </div>
 
-                {/* Sapi 1 */}
-                <div 
-                  onClick={() => onNavigate?.('deteksi')}
-                  className="p-3 rounded-xl bg-[#f0f3ff] flex items-center justify-between gap-3 hover:bg-[#dee8ff]/60 transition-colors cursor-pointer border border-slate-200/50"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <img 
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8piisY7iiz1LQ7mMjBl2krHzOyU4Q529-y-aHYAnhfs5pP3RdBil74HVZHZB3VbnVtGekzfmdUAtfznqZgWVHT-sdlBtnOxxstr513aWxMUH4RMSjhiugb1idhnzUvkifJ1R4OhlibInhgM1fIkP4YPIOyfRmWPQp2ItU1CAt2FdMCh-kSg8YXY2TOAOINaJ7dnlST4T0gJU4nb7W4EJ2sCqMmmOHU8MPF1CmIbffDA8VbhzuaaGJ" 
-                      alt="Melati"
-                      className="w-11 h-11 rounded-xl object-cover shrink-0"
-                    />
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[13px] font-extrabold text-[#111c2d] truncate">Melati (#12)</span>
-                        <span className="px-1.5 py-0.2 rounded bg-white text-[#00450d] text-[10px] font-bold border border-slate-200">21.4 L</span>
+                {cows.slice(0, 4).map((cow) => (
+                  <div 
+                    key={cow.id}
+                    onClick={() => {
+                      try {
+                        localStorage.setItem('mowtitis_selected_cow', JSON.stringify({
+                          id: cow.id.replace('#', ''),
+                          name: cow.name,
+                          rfid: cow.rfid,
+                          stall: cow.stall,
+                          breed: cow.breed,
+                          dim: cow.dim,
+                          status: cow.status
+                        }));
+                      } catch {}
+                      onNavigate?.('deteksi');
+                    }}
+                    className={`p-3 rounded-xl flex items-center justify-between gap-3 transition-colors cursor-pointer border ${
+                      !cow.isHealthy
+                        ? 'bg-[#ffdad6]/20 border-[#ffdad6] hover:bg-[#ffdad6]/30'
+                        : cow.id === '#04'
+                        ? 'bg-[#8df5e4]/20 border-[#8df5e4]/40 hover:bg-[#8df5e4]/30'
+                        : 'bg-[#f0f3ff] border-slate-200/50 hover:bg-[#dee8ff]/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img 
+                        src={cow.photoUrl} 
+                        alt={cow.name}
+                        className="w-11 h-11 rounded-xl object-cover shrink-0 bg-slate-100 border border-slate-200"
+                      />
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[13px] font-extrabold text-[#111c2d] truncate">{cow.name} ({cow.id})</span>
+                          <span className="px-1.5 py-0.2 rounded bg-white text-[#00450d] text-[10px] font-bold border border-slate-200">{cow.milkYield} L</span>
+                        </div>
+                        <span className="text-[11px] text-[#41493e] truncate">{cow.cnnStatus} • Suhu {cow.temp ? `${cow.temp}°C` : '38.4°C'}</span>
                       </div>
-                      <span className="text-[11px] text-[#41493e] truncate">Ambing Simetris • Suhu 38.6°C</span>
                     </div>
+                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
+                      !cow.isHealthy
+                        ? 'bg-[#ffdad6] text-[#ba1a1a]'
+                        : cow.id === '#04'
+                        ? 'bg-[#8df5e4] text-[#00201c]'
+                        : 'bg-[#acf4a4] text-[#0c5216]'
+                    }`}>
+                      <span className="material-symbols-outlined text-[13px]">
+                        {!cow.isHealthy ? 'warning' : 'verified'}
+                      </span>
+                      {cow.isHealthy ? 'NORMAL' : 'PERIKSA'}
+                    </span>
                   </div>
-                  <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#acf4a4] text-[#0c5216] text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[13px]">verified</span> SEHAT
-                  </span>
-                </div>
-
-                {/* Sapi 2: Mawar Pulih */}
-                <div 
-                  onClick={() => onNavigate?.('deteksi')}
-                  className="p-3 rounded-xl bg-[#8df5e4]/20 flex items-center justify-between gap-3 hover:bg-[#8df5e4]/30 transition-colors cursor-pointer border border-[#8df5e4]/40"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <img 
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7ztQA4SHCr1ojt-NGvHVjWHWWAMj-xjEYilRHsbF3_mqW775wv9KSq67fHc4wM3DYR36p3OTIESo-AXGEgBVIyxUxCmSvtSKNllSLtVCAXT2koZ46qngxj2uPaxwqm2tgRtxyETbdQOQWmCmDFM9ubzwmIrhjsIMlZGn_KoTskvH_HteGlqbD4T296Ixk77QMPWmmNZ5NU4vwQk4B-K9Y_401AAS2Lddb22QIxYj71LbX3WMg-ag1" 
-                      alt="Mawar"
-                      className="w-11 h-11 rounded-xl object-cover shrink-0"
-                    />
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[13px] font-extrabold text-[#111c2d] truncate">Mawar (#04)</span>
-                        <span className="px-1.5 py-0.2 rounded bg-white text-[#006b5f] text-[10px] font-bold border border-slate-200">16.8 L</span>
-                      </div>
-                      <span className="text-[11px] text-[#41493e] truncate">Suhu 38.4°C • Tuntas Post-Mastitis</span>
-                    </div>
-                  </div>
-                  <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#8df5e4] text-[#00201c] text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[13px]">health_and_safety</span> PULIH TOTAL
-                  </span>
-                </div>
-
-                {/* Sapi 3 */}
-                <div 
-                  onClick={() => onNavigate?.('deteksi')}
-                  className="p-3 rounded-xl bg-[#f0f3ff] flex items-center justify-between gap-3 hover:bg-[#dee8ff]/60 transition-colors cursor-pointer border border-slate-200/50"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <img 
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWPg8eHYXmwW2fhbeId6mkoknXMaju_2-jj473r3Q17qcHVIZEVgTKdP3FDMUucsMp10WfbnW2cEVJHAKrWiw3MyUUAAlh-obwkEmymtgNyc01FYVJAoQdzt2-cxCXMXKh3D3zT0tcwQtx-TIVLmG6ifCXjjziBuXLN2Hr6BixUY2AmzuAu8d6DQJumKYUTgp2OXSavdddI7mzItreU3Dh6GeuTHJRiGqLnTr35xvWPlFWYOZiV5gn" 
-                      alt="Cantik"
-                      className="w-11 h-11 rounded-xl object-cover shrink-0"
-                    />
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[13px] font-extrabold text-[#111c2d] truncate">Cantik (#07)</span>
-                        <span className="px-1.5 py-0.2 rounded bg-white text-[#00450d] text-[10px] font-bold border border-slate-200">19.2 L</span>
-                      </div>
-                      <span className="text-[11px] text-[#41493e] truncate">Puting Kanan Bersih • pH 6.6</span>
-                    </div>
-                  </div>
-                  <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#acf4a4] text-[#0c5216] text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[13px]">check</span> NORMAL
-                  </span>
-                </div>
-
-                {/* Sapi 4 */}
-                <div 
-                  onClick={() => onNavigate?.('deteksi')}
-                  className="p-3 rounded-xl bg-[#f0f3ff] flex items-center justify-between gap-3 hover:bg-[#dee8ff]/60 transition-colors cursor-pointer border border-slate-200/50"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <img 
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJeeagUTxManEPE90Mm61v2lavowmVFMmcYo9U93IvVDAgNSarfNFX52H7gMQuYTd5DqOdxKTEo_K-0dbyPjKs4JWAs9RdeCMwaq4KeH-ieC1FzNayHt0FqGkhmGXYwIy7HHE3TvsKSgd9-GBGwX_YkQLAg4D2VuQIIx9QqAIp_G2p-_z0jg3XToVNQp5tOGOrN56s_9K4mgBtcACuf6zKww6Sel2Wh_8v3Nk9WQVRq6am5HA51eFN" 
-                      alt="Sekar"
-                      className="w-11 h-11 rounded-xl object-cover shrink-0"
-                    />
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[13px] font-extrabold text-[#111c2d] truncate">Sekar (#18)</span>
-                        <span className="px-1.5 py-0.2 rounded bg-white text-[#00450d] text-[10px] font-bold border border-slate-200">17.5 L</span>
-                      </div>
-                      <span className="text-[11px] text-[#41493e] truncate">SCC 110k • Laju Alir 2.8 L/mnt</span>
-                    </div>
-                  </div>
-                  <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#acf4a4] text-[#0c5216] text-[10px] font-extrabold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[13px]">check</span> NORMAL
-                  </span>
-                </div>
+                ))}
               </section>
 
               {/* Status Setor KUD Argopuro Jaya */}
@@ -560,11 +537,11 @@ export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[12px] text-[#41493e]">Total Susu Disetor</span>
-                    <span className="text-[16px] text-[#00450d] font-black">142.8 Liter</span>
+                    <span className="text-[16px] text-[#00450d] font-black">{totalMilkToday} Liter</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[12px] text-[#41493e]">Estimasi Nilai Cair (Bruto)</span>
-                    <span className="text-[16px] text-[#111c2d] font-black">Rp 999.600</span>
+                    <span className="text-[16px] text-[#111c2d] font-black">Rp {Math.round(totalMilkToday * 7000).toLocaleString('id-ID')}</span>
                   </div>
                   <div className="flex justify-between items-center text-[11px] text-[#717a6d] pt-1">
                     <span>Uji Alkohol: <strong className="text-[#00450d]">Negatif (Lolos)</strong></span>

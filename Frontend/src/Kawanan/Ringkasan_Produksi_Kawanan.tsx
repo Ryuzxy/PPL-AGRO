@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { ScreenType } from '../App.tsx';
+import { useCows } from '../hooks/useSupabaseData';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
 
 interface RingkasanProduksiKawananProps {
@@ -10,38 +11,30 @@ export default function RingkasanProduksiKawanan({ onNavigate }: RingkasanProduk
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [period, setPeriod] = useState<'today' | '7days' | 'month' | 'lactation'>('today');
 
-  const topCows = [
-    {
-      id: '07',
-      name: 'Cantik (#07)',
-      breed: 'FH Murni • Laktasi 3',
-      stall: 'Line 05 Parlor A',
-      liters: '26.50 L',
-      percentage: '18.5%',
-      status: 'Top Performer',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAbRFr9JUo0u3i9xbyhMo6KkHGYveZJ809KdSCRsqqb5dEECfQ3Qk79MRWeCaWZ5_Hot3KRJqRSQ3r08SiWU5nkR--RA0Nw5hn-PPW7ueVvzabPUYqdsxNbw3wrTiyH6dsfa4HMj-FMrDsUPpWkbxJW1j_T1jxzKCNud-SepGnAvAEzv2Oc6q3JHiQZrvWPIhLPZPXJVwIiM5X2hRFX3doiAdNjdBGhldVnnVEUjNzm2G4rzdgYvMvL'
-    },
-    {
-      id: '12',
-      name: 'Melati (#12)',
-      breed: 'FH Cross • Laktasi 2',
-      stall: 'Line 02 Parlor A',
-      liters: '21.40 L',
-      percentage: '15.0%',
-      status: 'Stabil',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAfrE1eDrWFkuHXMJa7twfmYy1OPpAX1dzP-O19Etd7D-c_5uHjzzlihyuYyTpx2DyOdey9FKCUp2VVAVbb9wrRYGd14wsPReEvb_th7N3cQf8qk2QIeKLdDAkxEHIniUsKaU6nG-zxJs8s64FFgpa9ofwvPW0RWhfK8G4AEdKIQ9TvpuqdGQji1MWXWXsAET-MGsV_XEm4lyWSE9e_NZT5QqI2oOeB0wrLv5Tow3jmmpnP7h4anQHC'
-    },
-    {
-      id: '18',
-      name: 'Sekar (#18)',
-      breed: 'FH Laktasi 1',
-      stall: 'Line 04 Parlor A',
-      liters: '18.20 L',
-      percentage: '12.7%',
-      status: 'Potensial',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA7EvobBWcbpU-4fA6c4j0EMD7VO_6XweeX2EJKQ7KRcW2h3lCWAJ1Wt126zgRwG3Fw7JBawHHCv4rzm6XwnDAdK739UrxZQsN7i7Vjyn0Hb9IH8zZJjl9EwOMbtCFEL9FL5EVKscfSSdh4mCI2rnuO2ltQ8hxaHN3dCQGTEhMU4S6GMwNCFYgxgp8z5i_17ZjmMO6n0Cw4PfxH3FOM4eS4RpQkqNS-1No1hwpPEDk21dbYIFAw2NqJ'
-    }
-  ];
+  const { cows: dbCows, loading } = useCows();
+
+  const topCows = useMemo(() => {
+    return [...dbCows]
+      .sort((a, b) => {
+        const yieldA = parseFloat(a.raw.rerata_produksi_harian || '0');
+        const yieldB = parseFloat(b.raw.rerata_produksi_harian || '0');
+        return yieldB - yieldA;
+      })
+      .slice(0, 3)
+      .map((c, idx) => {
+        const yieldVal = parseFloat(c.raw.rerata_produksi_harian || '18.0') || 18.0;
+        return {
+          id: c.id,
+          name: `${c.name} (${c.number})`,
+          breed: c.raw.ras || 'Friesian Holstein (FH)',
+          stall: c.stall,
+          liters: `${yieldVal.toFixed(2)} L`,
+          percentage: `${((yieldVal / 143.05) * 100).toFixed(1)}%`,
+          status: idx === 0 ? 'Top Performer' : idx === 1 ? 'Stabil' : 'Potensial',
+          image: c.image,
+        };
+      });
+  }, [dbCows]);
 
   return (
     <div className="bg-[#f9f9ff] font-['Plus_Jakarta_Sans',sans-serif] text-[#111c2d] min-h-screen antialiased flex flex-col lg:flex-row">

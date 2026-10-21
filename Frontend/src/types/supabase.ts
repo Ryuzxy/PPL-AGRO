@@ -316,6 +316,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: number
+          is_deleted: boolean | null
           jumlah: number
           kategori: string | null
           keterangan: string | null
@@ -328,6 +329,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: number
+          is_deleted?: boolean | null
           jumlah: number
           kategori?: string | null
           keterangan?: string | null
@@ -340,6 +342,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: number
+          is_deleted?: boolean | null
           jumlah?: number
           kategori?: string | null
           keterangan?: string | null
@@ -371,6 +374,7 @@ export type Database = {
           bukti_transaksi_url: string | null
           created_at: string | null
           id: number
+          is_deleted: boolean | null
           jumlah: number
           kategori: string | null
           keterangan: string | null
@@ -382,6 +386,7 @@ export type Database = {
           bukti_transaksi_url?: string | null
           created_at?: string | null
           id?: number
+          is_deleted?: boolean | null
           jumlah: number
           kategori?: string | null
           keterangan?: string | null
@@ -393,6 +398,7 @@ export type Database = {
           bukti_transaksi_url?: string | null
           created_at?: string | null
           id?: number
+          is_deleted?: boolean | null
           jumlah?: number
           kategori?: string | null
           keterangan?: string | null
@@ -509,6 +515,7 @@ export type Database = {
           fase_laktasi: string | null
           foto_profil_url: string | null
           id: number
+          is_deleted: boolean | null
           jenis_kelamin: string | null
           lokasi_kandang: string | null
           nama: string
@@ -528,6 +535,7 @@ export type Database = {
           fase_laktasi?: string | null
           foto_profil_url?: string | null
           id?: number
+          is_deleted?: boolean | null
           jenis_kelamin?: string | null
           lokasi_kandang?: string | null
           nama: string
@@ -547,6 +555,7 @@ export type Database = {
           fase_laktasi?: string | null
           foto_profil_url?: string | null
           id?: number
+          is_deleted?: boolean | null
           jenis_kelamin?: string | null
           lokasi_kandang?: string | null
           nama?: string

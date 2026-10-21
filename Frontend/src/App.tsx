@@ -23,7 +23,6 @@ import RingkasanProduksiKawanan from './Kawanan/Ringkasan_Produksi_Kawanan.tsx';
 // 5. AI Deteksi Mastitis CNN & Identifikasi RFID (Consolidated)
 import PilihSapiDeteksiCNN from './Yolo/Pilih_Sapi_Deteksi_CNN.tsx';
 import DeteksiCNN from './Yolo/Deteksi_CNN.tsx';
-import { DeteksiMastitisCNNInspeksi } from './Yolo/Deteksi_Mastitis_CNN_Inspeksi.tsx';
 import HasilDeteksiMastitis from './Yolo/Hasil_Deteksi_Mastitis.tsx';
 import PemindaiRFID from './Yolo/Pemindai_RFID.tsx';
 import KetikManualEartag from './Yolo/Ketik_Manual_Eartag.tsx';

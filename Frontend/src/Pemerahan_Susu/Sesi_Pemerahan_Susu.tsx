@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import type { ScreenType } from '../App.tsx';
 import { supabase } from '../lib/supabase';
 
+import { useCows } from '../hooks/useSupabaseData';
+
 interface SesiPemerahanSusuProps {
   onNavigate?: (screen: ScreenType) => void;
   defaultCowId?: string;
@@ -19,13 +21,24 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
   const [isPulsatorStopped, setIsPulsatorStopped] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Cows catalog for parlor slots
-  const parlorSlots = [
-    { id: '18', line: 'Line 04', name: 'Sekar', breed: 'FH Laktasi-2', target: '13.5 L' },
-    { id: '07', line: 'Line 05', name: 'Cantik', breed: 'FH Murni', target: '14.8 L' },
-    { id: '12', line: 'Line 02', name: 'Melati', breed: 'FH Cross', target: '11.0 L' },
-    { id: '03', line: 'Line 01', name: 'Ratih', breed: 'FH Laktasi-1', target: '10.5 L' },
-  ];
+  const { cows } = useCows();
+
+  // Dynamic cows catalog from Supabase
+  const parlorSlots = cows.length > 0 
+    ? cows.map((c, idx) => ({
+        id: c.id.replace('#', ''),
+        rawId: c.rawId,
+        line: c.stall || `Line 0${idx + 1}`,
+        name: c.name,
+        breed: c.breed,
+        target: `${c.milkYield || 12} L`
+      }))
+    : [
+        { id: '18', rawId: 4, line: 'Line 04', name: 'Sekar', breed: 'FH Laktasi-2', target: '13.5 L' },
+        { id: '07', rawId: 2, line: 'Line 05', name: 'Cantik', breed: 'FH Murni', target: '14.8 L' },
+        { id: '12', rawId: 3, line: 'Line 02', name: 'Melati', breed: 'FH Cross', target: '11.0 L' },
+        { id: '04', rawId: 1, line: 'Line 01', name: 'Mawar', breed: 'FH Laktasi-1', target: '16.8 L' },
+      ];
 
   const currentCow = parlorSlots.find((c) => c.id === selectedCowId) || parlorSlots[0];
 
@@ -61,18 +74,32 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
 
   const handleFinish = async () => {
     setIsFinished(true);
-    showToast(`Pemerahan Sapi #${currentCow.id} (${volume} L) selesai! Menyimpan data...`);
+    showToast(`Pemerahan Sapi #${currentCow.id} (${volume} L) selesai! Menyimpan data ke Supabase...`);
 
-    // Optional background log to Supabase
+    const rawSapiId = (currentCow as any)?.rawId || (currentCow.id === '04' ? 1 : currentCow.id === '07' ? 2 : currentCow.id === '12' ? 3 : currentCow.id === '18' ? 4 : currentCow.id === '21' ? 5 : 6);
+
     try {
+      // 1. Simpan catatan hasil perah ke Supabase
       await supabase.from('histori_produksi_susu').insert({
-        sapi_id: 1, // Fallback linked id
+        sapi_id: rawSapiId,
         jumlah_liter: volume,
         sesi: sessionTime,
         suhu_susu: temperature,
         konduktivitas: conductivity,
         kualitas_grade: 'A',
       });
+
+      // 2. Simpan setoran pemasukan susu ke Supabase
+      await supabase.from('pemasukan').insert({
+        sapi_id: rawSapiId,
+        kategori: 'Penjualan Susu KUD',
+        jumlah: Math.round(volume * 7000),
+        volume_liter: volume,
+        keterangan: `Setoran Susu ${sessionTime === 'pagi' ? 'Pagi' : 'Sore'} Sapi #${currentCow.id} (${currentCow.name})`,
+        tanggal: new Date().toISOString().split('T')[0]
+      });
+
+      showToast(`Data perah & kas setoran Rp ${Math.round(volume * 7000).toLocaleString('id-ID')} tersimpan di Supabase!`);
     } catch (e) {
       console.warn('Logging to Supabase skipped:', e);
     }

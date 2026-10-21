@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
+import { supabase } from '../lib/supabase';
+import { useCows } from '../hooks/useSupabaseData';
 
 interface PrediksiLaktasiPakanProps {
   onNavigate?: (screen: 'dashboard' | 'deteksi' | 'prediksi' | 'katalog' | 'kas' | 'opening') => void;
@@ -8,6 +10,9 @@ interface PrediksiLaktasiPakanProps {
 export default function PrediksiLaktasiPakan({ onNavigate }: PrediksiLaktasiPakanProps) {
   // Mobile drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const { cows } = useCows();
+  const activeCow = cows.find(c => c.id === '#12') || cows[0];
 
   // What-If Sliders state
   const [grass, setGrass] = useState<number>(35.0);
@@ -49,8 +54,19 @@ export default function PrediksiLaktasiPakan({ onNavigate }: PrediksiLaktasiPaka
     setActiveScenario('B');
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     setShowToast(true);
+    try {
+      await supabase.from('pengeluaran').insert({
+        sapi_id: activeCow?.rawId || 3,
+        kategori: 'Pakan Konsentrat',
+        jumlah: feedCost,
+        keterangan: `Aplikasi Formulasi Ransum Pakan ${activeCow?.name || 'Melati'} (XGBoost): ${grass}kg Rumput, ${concentrate}kg Konsentrat, ${sbm}kg SBM`,
+        tanggal: new Date().toISOString().split('T')[0]
+      });
+    } catch (e) {
+      console.warn('Gagal mencatat ransum ke Supabase:', e);
+    }
     setTimeout(() => setShowToast(false), 3500);
   };
 

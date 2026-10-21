@@ -18,9 +18,12 @@ export default function DashboardKandangMowtitis({ onNavigate }: DashboardKandan
   const { todayIncome, todayExpense } = useCashflow();
   const { totalToday } = useMilkTelemetry();
 
-  const healthyCowsCount = cows.length > 0 ? cows.filter(c => c.isHealthy).length : 18;
-  const totalCowsCount = cows.length > 0 ? cows.length : 18;
-  const displayIofc = todayIncome > todayExpense ? (todayIncome - todayExpense) : 702400;
+  const totalCowsCount = cows.length;
+  const healthyCowsCount = cows.filter(c => c.isHealthy).length;
+  const displayMilkToday = totalToday > 0 ? totalToday : +(cows.reduce((sum, c) => sum + (c.milkYield || 0), 0)).toFixed(1);
+  const displayIofc = todayIncome > 0 || todayExpense > 0 
+    ? Math.max(0, todayIncome - todayExpense) 
+    : Math.round(displayMilkToday * 7000 - 450000);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -263,7 +266,7 @@ export default function DashboardKandangMowtitis({ onNavigate }: DashboardKandan
                   <span className="material-symbols-outlined text-[#006b5f] text-[18px]">local_drink</span>
                 </div>
                 <div className="text-xl md:text-2xl font-extrabold text-[#111c2d] leading-none">
-                  {totalToday} <span className="text-sm font-bold text-[#717a6d]">L</span>
+                  {displayMilkToday} <span className="text-sm font-bold text-[#717a6d]">L</span>
                 </div>
                 <div className="flex items-center gap-1 mt-1 text-[#00450d]">
                   <span className="material-symbols-outlined text-[14px] font-bold">trending_up</span>
@@ -272,7 +275,7 @@ export default function DashboardKandangMowtitis({ onNavigate }: DashboardKandan
               </div>
               <div className="mt-3 pt-2 bg-[#f0f3ff] -mx-3.5 -mb-3.5 px-3.5 py-1.5 rounded-b-2xl border-t border-[#dee8ff]">
                 <span className="text-[10px] text-[#717a6d] block truncate">
-                  Pagi: {(totalToday * 0.52).toFixed(1)} L • Sore: {(totalToday * 0.48).toFixed(1)} L
+                  Pagi: {(displayMilkToday * 0.52).toFixed(1)} L • Sore: {(displayMilkToday * 0.48).toFixed(1)} L
                 </span>
               </div>
             </div>

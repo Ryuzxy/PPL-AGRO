@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { aiApi } from '../lib/aiApi';
+import { supabase } from '../lib/supabase';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
 
 interface DeteksiCNNProps {
@@ -15,13 +16,19 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Selected Cattle info
-  const [selectedCow, setSelectedCow] = useState({
-    id: '04',
-    name: 'Mawar',
-    rfid: 'RF-004',
-    dim: 142,
-    breed: 'Friesian Holstein',
-    status: 'Bebas Karantina'
+  const [selectedCow, setSelectedCow] = useState(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('mowtitis_selected_cow') : null;
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      id: '12',
+      name: 'Melati',
+      rfid: 'RF-012',
+      dim: 42,
+      breed: 'Friesian Holstein Murni',
+      status: 'Perlu Cek Ambing'
+    };
   });
 
   // Camera & Tracking states
@@ -29,7 +36,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
   const [cameraError, setCameraError] = useState<string | null>(null);
 
   // Dynamic Real-Time YOLO Tracking Box state (in container percentages)
-  const [trackedBox, setTrackedBox] = useState({
+  const [trackedBox] = useState({
     x: 22,
     y: 18,
     width: 56,
@@ -492,13 +499,37 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
 
       sessionStorage.setItem('mowtitis_last_prediction', JSON.stringify(yoloResultPayload));
 
-      setAiResult({
+      const newAiResult = {
         status_prediksi: prediction.status_prediksi || 'Grade A - Sehat & Higienis',
         confidence_skor: Number(prediction.confidence_skor?.toFixed(1)) || 98.6,
         probabilitas_mastitis: Number(prediction.probabilitas_mastitis?.toFixed(1)) || 1.4,
         kuartir_terdampak: prediction.kuartir_terdampak || 'Kanan Belakang',
         grade: prediction.status_prediksi?.includes('Normal') || prediction.status_prediksi?.includes('Sehat') ? 'A' : 'C',
-      });
+      };
+      setAiResult(newAiResult);
+
+      // Auto-save detection to Supabase
+      try {
+        const cowNum = parseInt(String(selectedCow.id).replace('#', ''), 10) || 1;
+        await supabase.from('hasil_deteksi_mastitis').insert([{
+          sapi_id: cowNum,
+          model_engine: 'YOLOv26-XSeg (Dairy-Vision v26.4.1)',
+          status_deteksi: newAiResult.status_prediksi,
+          confidence_score: newAiResult.confidence_skor / 100,
+          grade: newAiResult.grade,
+          indeks_eritema: 14.2,
+          detail_kuartir: {
+            kuartir_terdampak: newAiResult.kuartir_terdampak,
+            probabilitas_mastitis: newAiResult.probabilitas_mastitis,
+            quarter: selectedQuarter,
+          },
+          rekomendasi_sop: newAiResult.grade === 'A' 
+            ? 'Aman diperah. Rutin celup puting teat dip paska perah.' 
+            : 'Karantina dan laporkan ke dokter hewan / berikan salep mastitis.'
+        }]);
+      } catch (saveErr) {
+        console.warn('Supabase auto-record error:', saveErr);
+      }
 
       setSnapshotTaken(true);
       setTimeout(() => setSnapshotTaken(false), 3800);
@@ -511,9 +542,31 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
     }
   };
 
-  const handleSaveToCloud = () => {
-    setSavedToCloud(true);
-    setTimeout(() => setSavedToCloud(false), 3500);
+  const handleSaveToCloud = async () => {
+    try {
+      setSavedToCloud(true);
+      const cowNum = parseInt(String(selectedCow.id).replace('#', ''), 10) || 1;
+      await supabase.from('hasil_deteksi_mastitis').insert([{
+        sapi_id: cowNum,
+        model_engine: 'YOLOv26-XSeg (Dairy-Vision v26.4.1)',
+        status_deteksi: aiResult.status_prediksi,
+        confidence_score: aiResult.confidence_skor / 100,
+        grade: aiResult.grade,
+        indeks_eritema: 14.2,
+        detail_kuartir: {
+          kuartir_terdampak: aiResult.kuartir_terdampak,
+          probabilitas_mastitis: aiResult.probabilitas_mastitis,
+          quarter: selectedQuarter,
+        },
+        rekomendasi_sop: aiResult.grade === 'A' 
+          ? 'Aman diperah. Rutin celup puting teat dip paska perah.' 
+          : 'Karantina dan laporkan ke dokter hewan / berikan salep mastitis.'
+      }]);
+    } catch (err) {
+      console.warn('Manual cloud save error:', err);
+    } finally {
+      setTimeout(() => setSavedToCloud(false), 3500);
+    }
   };
 
   return (
@@ -545,19 +598,19 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
 
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => alert('Sensor IoT Kandang Rembangan berhasil disinkronisasi!')}
-              className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#e7eeff] text-[#111c2d] hover:bg-[#dee8ff] transition-colors text-[13px] font-semibold"
+              onClick={() => alert('Sensor Kandang Rembangan berhasil terhubung!')}
+              className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#e7eeff] text-[#111c2d] hover:bg-[#dee8ff] transition-colors text-[13px] font-semibold cursor-pointer"
             >
               <span className="material-symbols-outlined text-[17px] text-[#006b5f]">sensors</span>
-              <span>Sync IoT Sensor</span>
+              <span>Cek Sensor Kandang</span>
             </button>
 
             <button 
               onClick={() => window.print()}
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#e7eeff] text-[#111c2d] hover:bg-[#dee8ff] transition-colors text-[13px] font-semibold"
+              className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#e7eeff] text-[#111c2d] hover:bg-[#dee8ff] transition-colors text-[13px] font-semibold cursor-pointer"
             >
               <span className="material-symbols-outlined text-[17px] text-[#41493e]">file_download</span>
-              <span>PDF Rekam Medis</span>
+              <span>Cetak Catatan Medis</span>
             </button>
 
             <button className="relative p-2 rounded-full text-[#41493e] hover:bg-[#e7eeff] transition-colors">
@@ -589,19 +642,19 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
               <div className="flex items-center gap-2 flex-wrap text-[11px]">
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#d8e3fb] text-[#006b5f] font-bold uppercase tracking-wider">
                   <span className="material-symbols-outlined text-[14px]">psychology</span>
-                  Modul Visual AI
+                  Kamera Pintar
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#00450d] text-[#8df5e4] font-black">
                   <span className="w-2 h-2 rounded-full bg-[#acf4a4] animate-pulse"></span>
-                  YOLOv26 Ultralytics Dairy-Vision
+                  Kamera AI Cek Ambing
                 </span>
                 <span className="text-slate-300">•</span>
-                <span className="text-[#41493e]">Akurasi Validasi <strong>98.4%</strong></span>
+                <span className="text-[#41493e]">Akurasi <strong>98.4% (Tepat)</strong></span>
                 <span className="text-slate-300">•</span>
-                <span className="text-[#41493e]">Inferensi <strong>8.4 ms</strong> (118 FPS Edge Latency)</span>
+                <span className="text-[#41493e]">Hasil Cepat <strong>(Langsung Muncul)</strong></span>
               </div>
               <h1 className="text-[20px] sm:text-[24px] font-extrabold text-[#111c2d] tracking-tight">
-                Klinik Diagnostik Ambing Berbasis YOLOv26 & Visual AI Real-Time
+                Pemeriksaan Ambing & Puting Susu Sapi
               </h1>
             </div>
 
@@ -610,7 +663,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
               <div className="flex items-center gap-2.5 px-3 py-1.5 bg-white rounded-lg shadow-sm">
                 <span className="material-symbols-outlined text-[#1b5e20] text-[22px]">contactless</span>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-[#717a6d] uppercase tracking-wider">RFID Sync</span>
+                  <span className="text-[10px] font-bold text-[#717a6d] uppercase tracking-wider">Tanda Sapi (RFID)</span>
                   <span className="text-[14px] font-extrabold text-[#111c2d]">#{selectedCow.id} - {selectedCow.name}</span>
                 </div>
               </div>
@@ -622,28 +675,33 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
               </div>
               <button 
                 onClick={() => {
+                  let nextCow;
                   if (selectedCow.id === '04') {
-                    setSelectedCow({
+                    nextCow = {
                       id: '12',
                       name: 'Melati',
                       rfid: 'RF-012',
                       dim: 42,
                       breed: 'Friesian Holstein Murni',
                       status: 'Laktasi Peak'
-                    });
+                    };
                   } else {
-                    setSelectedCow({
+                    nextCow = {
                       id: '04',
                       name: 'Mawar',
                       rfid: 'RF-004',
                       dim: 142,
                       breed: 'Friesian Holstein',
                       status: 'Bebas Karantina'
-                    });
+                    };
                   }
+                  setSelectedCow(nextCow);
+                  try {
+                    localStorage.setItem('mowtitis_selected_cow', JSON.stringify(nextCow));
+                  } catch {}
                 }}
                 className="p-2 rounded-lg bg-[#dee8ff] text-[#111c2d] hover:bg-[#d8e3fb] transition-colors flex items-center justify-center cursor-pointer"
-                title="Ganti Ternak"
+                title="Ganti Sapi"
               >
                 <span className="material-symbols-outlined text-[20px]">swap_horiz</span>
               </button>
@@ -664,12 +722,12 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#8df5e4]"></span>
                       </span>
                       <span className="text-[12px] font-bold tracking-wider uppercase text-slate-100">
-                        KAMERA LIVE YOLO v26 • STALL 03
+                        KAMERA LANGSUNG • KANDANG SAPI
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-[#8df5e4] font-mono font-bold">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#8df5e4] animate-pulse"></span>
-                      <span>AUTO TRACKING ON</span>
+                      <span>KOTAK MENGIKUTI AMBING</span>
                     </div>
                   </div>
 
@@ -700,12 +758,12 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                             {cameraError ? 'Akses Kamera Terkendala' : 'Menghubungkan Kamera Langsung...'}
                           </h3>
                           <p className="text-[11px] text-slate-300">
-                            {cameraError || 'Mempersiapkan WebRTC kamera lokal untuk inspeksi ambing real-time YOLOv26.'}
+                            {cameraError || 'Mempersiapkan kamera untuk pemeriksaan ambing sapi secara otomatis.'}
                           </p>
                         </div>
                         <button
                           onClick={startCamera}
-                          className="mt-2 py-2 px-4 rounded-xl bg-[#1b5e20] hover:bg-[#00450d] text-white font-bold text-xs flex items-center gap-1.5 shadow"
+                          className="mt-2 py-2 px-4 rounded-xl bg-[#1b5e20] hover:bg-[#00450d] text-white font-bold text-xs flex items-center gap-1.5 shadow cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-[16px]">refresh</span>
                           <span>Buka Kamera</span>
@@ -753,7 +811,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                           style={{ left: '26%', top: '24%' }}
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-[#8df5e4]"></span>
-                          <span className="text-[10px] font-bold">LD</span>
+                          <span className="text-[10px] font-bold">Depan Kiri</span>
                           <span className="text-[9px] font-mono text-emerald-300">38.2°C</span>
                         </div>
 
@@ -769,7 +827,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                           style={{ left: '74%', top: '24%' }}
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-[#8df5e4]"></span>
-                          <span className="text-[10px] font-bold">KD</span>
+                          <span className="text-[10px] font-bold">Depan Kanan</span>
                           <span className="text-[9px] font-mono text-emerald-300">38.3°C</span>
                         </div>
 
@@ -785,7 +843,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                           style={{ left: '26%', top: '76%' }}
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-[#8df5e4]"></span>
-                          <span className="text-[10px] font-bold">KL</span>
+                          <span className="text-[10px] font-bold">Belakang Kiri</span>
                           <span className="text-[9px] font-mono text-emerald-300">38.4°C</span>
                         </div>
 
@@ -801,7 +859,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                           style={{ left: '74%', top: '76%' }}
                         >
                           <span className="w-2 h-2 rounded-full bg-[#acf4a4] animate-pulse"></span>
-                          <span className="text-[10px] font-extrabold">KB</span>
+                          <span className="text-[10px] font-extrabold">Belakang Kanan</span>
                           <span className="text-[9px] font-mono text-white">38.4°C</span>
                           <span className="text-[8px] bg-white/20 text-white px-1.5 py-0.2 rounded-full font-bold">Sembuh</span>
                         </div>
@@ -809,7 +867,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                         {/* Tracking Telemetry Footer Chip */}
                         <div className="absolute -bottom-6 right-1 bg-black/60 backdrop-blur-md text-white text-[9px] font-mono px-2 py-0.5 rounded-full flex items-center gap-1.5 shadow-sm whitespace-nowrap">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#8df5e4] animate-pulse"></span>
-                          <span className="text-[#8df5e4]">Auto-Track</span>
+                          <span className="text-[#8df5e4]">Pelacak Otomatis</span>
                           <span className="text-white/40">•</span>
                           <span ref={telemetryRef}>X:{Math.round(trackedBox.x)} Y:{Math.round(trackedBox.y)}</span>
                         </div>
@@ -821,12 +879,12 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                       <span className="material-symbols-outlined text-[14px] text-[#8df5e4] animate-pulse">
                         videocam
                       </span>
-                      <span>KAMERA WEBCAM LIVE</span>
+                      <span>KAMERA LIVE</span>
                     </div>
 
                     <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md text-white px-2.5 py-1 rounded-md text-[10px] font-mono font-bold flex items-center gap-1 z-10">
                       <span className="material-symbols-outlined text-[13px] text-[#acf4a4]">radar</span>
-                      <span>YOLOv26 AUTO-TRACK</span>
+                      <span>AUTO-TRACK</span>
                     </div>
                   </div>
 
@@ -836,12 +894,12 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                       onClick={handleRetakeSnapshot}
                       disabled={isCapturing}
                       className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#00450d] via-[#1b5e20] to-[#00450d] text-white font-extrabold text-sm shadow-md hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-60"
-                      title="Pindai dan analisis objek ambing sekarang"
+                      title="Periksa ambing sapi sekarang"
                     >
                       <span className={`material-symbols-outlined text-[22px] text-[#8df5e4] ${isCapturing ? 'animate-spin' : ''}`}>
                         {isCapturing ? 'sync' : 'photo_camera'}
                       </span>
-                      <span>{isCapturing ? 'Menjalankan Inferensi YOLO v26...' : 'Pindai & Analisis YOLO v26'}</span>
+                      <span>{isCapturing ? 'Sedang Memeriksa Ambing Sapi...' : 'Ambil Foto & Periksa Ambing'}</span>
                     </button>
                   </div>
                 </div>
@@ -852,9 +910,9 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                     <span className="material-symbols-outlined text-[24px]">verified_user</span>
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[14px] sm:text-[15px] text-[#111c2d] font-bold">Integritas Jaringan Vaskular Terkonfirmasi Sehat</span>
+                    <span className="text-[14px] sm:text-[15px] text-[#111c2d] font-bold">Ambing Sapi Sehat (Bebas Radang Susu)</span>
                     <p className="text-[12px] sm:text-[13px] text-[#41493e] leading-relaxed">
-                      Kotak target YOLO v26 secara otomatis melacak pergerakan ambing dan puting secara real-time. Tidak ditemukan kemerahan berlebih ataupun pembengkakan abnormal. Indikasi mastitis berada di bawah ambang batas bahaya (&lt;5%).
+                      Kotak kamera otomatis mengikuti posisi ambing dan puting sapi. Kulit ambing bersih, tidak bengkak, dan tidak ada tanda-tanda radang susu (mastitis). Sapi dalam kondisi prima.
                     </p>
                   </div>
                 </div>
@@ -867,11 +925,11 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                   {/* Model Classification Result */}
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div className="flex flex-col">
-                      <span className="text-[11px] font-bold text-[#717a6d] uppercase tracking-wider">Hasil Inferensi Visual AI</span>
+                      <span className="text-[11px] font-bold text-[#717a6d] uppercase tracking-wider">Hasil Pemeriksaan Kamera</span>
                       <span className="text-[18px] sm:text-[20px] text-[#00450d] font-black">{aiResult.status_prediksi}</span>
                     </div>
                     <div className="flex flex-col items-end">
-                      <span className="text-[10px] font-bold text-[#41493e] uppercase">Keyakinan Model</span>
+                      <span className="text-[10px] font-bold text-[#41493e] uppercase">Tingkat Kepastian</span>
                       <span className="text-[26px] text-[#006b5f] font-black leading-tight">{aiResult.confidence_skor}%</span>
                     </div>
                   </div>
@@ -879,22 +937,22 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                   {/* Mastitis Risk Score Progress Bar */}
                   <div className="flex flex-col gap-1.5 bg-[#f0f3ff] p-3.5 rounded-xl border border-slate-200/50">
                     <div className="flex justify-between items-center text-[12px]">
-                      <span className="text-[#111c2d] font-bold">Tingkat Risiko Mastitis (Global Udder Score)</span>
+                      <span className="text-[#111c2d] font-bold">Risiko Sakit Radang Susu (Mastitis)</span>
                       <span className="text-[#00450d] font-black">{aiResult.probabilitas_mastitis}% ({aiResult.probabilitas_mastitis < 25 ? 'Aman' : 'Perhatian'})</span>
                     </div>
                     <div className="w-full h-3 rounded-full bg-[#d8e3fb] overflow-hidden flex">
                       <div className="h-full bg-[#1b5e20] rounded-full transition-all duration-700" style={{ width: `${Math.min(100, Math.max(2, aiResult.probabilitas_mastitis))}%` }}></div>
                     </div>
                     <div className="flex justify-between items-center text-[#717a6d] text-[10px] font-semibold pt-0.5">
-                      <span>0% Higienis</span>
-                      <span>Ambang Batas Subklinis (25%)</span>
-                      <span>100% Akut</span>
+                      <span>0% Aman & Bersih</span>
+                      <span>Batas Waspada (25%)</span>
+                      <span>100% Sakit Parah</span>
                     </div>
                   </div>
 
                   {/* 4 Quarters Segmented Table */}
                   <div className="flex flex-col gap-2">
-                    <span className="text-[11px] font-extrabold text-[#717a6d] uppercase tracking-wider">Segmentasi 4 Kuartir Ambing</span>
+                    <span className="text-[11px] font-extrabold text-[#717a6d] uppercase tracking-wider">Kondisi 4 Puting Susu Sapi</span>
                     <div className="grid grid-cols-2 gap-2">
                       {/* Kuartir Kanan Depan */}
                       <div 
@@ -909,7 +967,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                         </div>
                         <div className="text-[11px] text-[#41493e] flex flex-col">
                           <span>Suhu: 38.3°C</span>
-                          <span className="text-[#006b5f] font-bold">SCC &lt; 100k / mL</span>
+                          <span className="text-[#006b5f] font-bold">Sel Radang: Rendah (Bagus)</span>
                         </div>
                       </div>
 
@@ -926,7 +984,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                         </div>
                         <div className="text-[11px] text-[#41493e] flex flex-col">
                           <span>Suhu: 38.2°C</span>
-                          <span className="text-[#006b5f] font-bold">SCC &lt; 120k / mL</span>
+                          <span className="text-[#006b5f] font-bold">Sel Radang: Rendah (Bagus)</span>
                         </div>
                       </div>
 
@@ -940,13 +998,13 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                         <div className="flex items-center justify-between">
                           <span className="text-[12px] text-[#00201c] font-bold flex items-center gap-1">
                             <span className="material-symbols-outlined text-[15px] text-[#00450d]">healing</span>
-                            Kanan Blkg (Target)
+                            Kanan Belakang
                           </span>
                           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#1b5e20] text-white font-bold">Sembuh</span>
                         </div>
                         <div className="text-[11px] text-[#111c2d] flex flex-col">
                           <span>Suhu: 38.4°C (Normal)</span>
-                          <span className="text-[#00450d] font-bold">SCC 115k (Negatif)</span>
+                          <span className="text-[#00450d] font-bold">Sel Radang: Rendah (Aman)</span>
                         </div>
                       </div>
 
@@ -963,7 +1021,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                         </div>
                         <div className="text-[11px] text-[#41493e] flex flex-col">
                           <span>Suhu: 38.4°C</span>
-                          <span className="text-[#006b5f] font-bold">SCC &lt; 140k / mL</span>
+                          <span className="text-[#006b5f] font-bold">Sel Radang: Rendah (Bagus)</span>
                         </div>
                       </div>
                     </div>
@@ -972,7 +1030,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                   {/* Recovery Timeline */}
                   <div className="flex flex-col gap-2 pt-1 border-t border-slate-100">
                     <span className="text-[11px] font-extrabold text-[#717a6d] uppercase tracking-wider">
-                      Riwayat Pemulihan Kuartir Kanan Belakang
+                      Catatan Kesembuhan Puting Belakang Kanan
                     </span>
                     <div className="p-3.5 rounded-xl bg-[#f0f3ff] flex flex-col gap-3">
                       {/* Step 1 */}
@@ -984,9 +1042,9 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                         <div className="flex flex-col">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11px] font-bold text-[#111c2d]">5 Hari Lalu</span>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#ffdad6] text-[#93000a] font-bold">Prob. 91.4%</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#ffdad6] text-[#93000a] font-bold">Bahaya 91.4%</span>
                           </div>
-                          <span className="text-[11px] text-[#41493e]">Terdeteksi Mastitis Subklinis Kuartir Kanan Belakang</span>
+                          <span className="text-[11px] text-[#41493e]">Mulai ada tanda radang susu pada puting belakang kanan</span>
                         </div>
                       </div>
 
@@ -999,9 +1057,9 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                         <div className="flex flex-col">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11px] font-bold text-[#111c2d]">3 Hari Lalu</span>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#d8e3fb] text-[#111c2d] font-bold">Terapi Intramamari</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#d8e3fb] text-[#111c2d] font-bold">Diberi Obat Salep</span>
                           </div>
-                          <span className="text-[11px] text-[#41493e]">Aplikasi Salep Mastitis Tube ke-2 &amp; Ekstraksi Susu Terpisah</span>
+                          <span className="text-[11px] text-[#41493e]">Diolesi salep radang ke-2 &amp; susu diperah terpisah</span>
                         </div>
                       </div>
 
@@ -1011,9 +1069,9 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                         <div className="flex flex-col">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[11px] font-bold text-[#00450d]">Hari Ini (10:14 WIB)</span>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#8df5e4] text-[#00201c] font-bold">Negatif Sempurna</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#8df5e4] text-[#00201c] font-bold">Sembuh Total</span>
                           </div>
-                          <span className="text-[11px] text-[#111c2d] font-semibold">Pemeriksaan YOLOv26 98.6% Sehat • Rekomendasi Bebas Karantina</span>
+                          <span className="text-[11px] text-[#111c2d] font-semibold">Pemeriksaan kamera 98.6% Sehat • Sapi sudah boleh diperah normal</span>
                         </div>
                       </div>
                     </div>
@@ -1026,7 +1084,7 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                       className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-full bg-[#1b5e20] text-white hover:bg-[#00450d] shadow-md active:scale-98 transition-all text-[13px] font-bold cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[18px]">cloud_done</span>
-                      <span>{savedToCloud ? '✓ Tersimpan di Database Cloud' : 'Simpan ke Rekam Medis Cloud'}</span>
+                      <span>{savedToCloud ? '✓ Tersimpan di Buku Catatan' : 'Simpan Catatan Kesehatan Sapi'}</span>
                     </button>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -1035,11 +1093,11 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
                         className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-full bg-[#e7eeff] text-[#111c2d] hover:bg-[#dee8ff] transition-colors text-[12px] font-semibold border border-slate-200 cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[16px] text-[#41493e]">print</span>
-                        <span>Cetak PDF</span>
+                        <span>Cetak Catatan</span>
                       </button>
 
                       <a 
-                        href={`https://wa.me/?text=Laporan%20Klinik%20Ambing%20YOLOv26%20Sapi%20%23${selectedCow.id}%20${selectedCow.name}:%20Kondisi%20Negatif%20Mastitis%20(98.6%25%20Sehat),%20Suhu%2038.4C,%20SCC%20Aman.`}
+                        href={`https://wa.me/?text=Laporan%20Kesehatan%20Ambing%20Sapi%20%23${selectedCow.id}%20${selectedCow.name}:%20Kondisi%20Sehat%20(98.6%25),%20Suhu%2038.4C,%20Aman.`}
                         target="_blank"
                         rel="noreferrer"
                         className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-full bg-[#8df5e4] text-[#00201c] hover:bg-[#70d8c8] transition-colors text-[12px] font-bold"

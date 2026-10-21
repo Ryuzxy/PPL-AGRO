@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { ScreenType } from '../App.tsx';
 
+import { useCashflow, useCows } from '../hooks/useSupabaseData';
+
 interface KirimLaporanWAProps {
   onNavigate?: (screen: ScreenType) => void;
   initialReportType?: 'kas_harian' | 'rekap_kawanan' | 'pasca_medis';
@@ -12,11 +14,19 @@ export default function KirimLaporanWA({ onNavigate, initialReportType = 'kas_ha
   const [recipientName, setRecipientName] = useState('Pak Bambang (KUD Argopuro Jaya / Koperasi Rembangan)');
   const [isSending, setIsSending] = useState(false);
 
-  // Pre-configured message templates
+  const { cows } = useCows();
+  const { todayIncome, todayExpense, iofc } = useCashflow();
+
+  const totalLiters = cows.reduce((sum, c) => sum + (c.milkYield || 0), 0);
+  const healthyCount = cows.filter(c => c.isHealthy).length;
+  const sickCount = cows.length - healthyCount;
+  const displayDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Pre-configured dynamic message templates
   const templates = {
-    kas_harian: `*Yth. ${recipientName}*\n\nBerikut terlampir *Laporan Buku Kas Mikro Kandang & IOFC*:\n\n📅 *Periode:* 15 Maret 2025 (Shift Sore)\n🥛 *Total Susu:* 143.05 Liter (Grade A SNI)\n💵 *Omzet Susu:* Rp 1.001.350\n🌾 *Biaya Pakan:* Rp 245.000\n📈 *Marjin IOFC:* Rp 756.350 (75.5%)\n\nDokumen resmi telah tervalidasi sensor IoT Timbangan & RFID Eartag Mowtitis AI. Mohon diproses untuk pencairan setoran KUD.\n\n_Salam hormat,_\n*Pak Hafid - Kandang Rembangan*`,
-    rekap_kawanan: `*Yth. Pengurus Koperasi Susu Rembangan*\n\nBerikut terlampir *Rekapitulasi Produksi Kawanan Sapi Perah (18 Ekor)*:\n\n📅 *Tanggal:* 15 Maret 2025\n🥛 *Produksi Harian:* 382.4 Liter (Rata-rata 21.2 L/ekor)\n🟢 *Sapi Sehat Produktif:* 17 Ekor (94.4%)\n🟡 *Karantina / Pemulihan:* 1 Ekor (#04 Mawar)\n🧪 *Rata-rata SCC Kawanan:* 185.000 sel/mL (Kategori Bebas Mastitis)\n\nTerlampir file PDF resmi tersertifikasi MowTitis AI System.`,
-    pasca_medis: `*Yth. Tim Medis Veteriner & Koperasi*\n\nUpdate *Pasca Pemulihan Mastitis Sapi #04 (Mawar)*:\n\n💉 *Terapi:* Salep Intramammar (Tube 3/3 Tuntas)\n⏱️ *Masa Withdrawal:* Selesai (24 Jam)\n🔬 *Hasil Rapid Test SCC:* 145.000 sel/mL (Negatif / Sehat)\n✅ *Rekomendasi:* Sapi layak dikembalikan ke Milk Parlor Utama besok pagi.\n\n_Salam hormat,_\n*Mantri Ternak Rembangan*`
+    kas_harian: `*Yth. ${recipientName}*\n\nBerikut terlampir *Laporan Buku Kas Mikro Kandang & IOFC*:\n\n📅 *Periode:* ${displayDate} (Sinkronisasi Supabase)\n🥛 *Total Susu:* ${totalLiters.toFixed(1)} Liter (Grade A SNI)\n💵 *Omzet Susu:* Rp ${todayIncome.toLocaleString('id-ID')}\n🌾 *Biaya Pakan & Operasional:* Rp ${todayExpense.toLocaleString('id-ID')}\n📈 *Marjin IOFC:* Rp ${iofc.toLocaleString('id-ID')}\n\nDokumen resmi telah tervalidasi sensor IoT Timbangan & RFID Eartag Mowtitis AI. Mohon diproses untuk pencairan setoran KUD.\n\n_Salam hormat,_\n*Pak Hafid - Kandang Rembangan*`,
+    rekap_kawanan: `*Yth. Pengurus Koperasi Susu Rembangan*\n\nBerikut terlampir *Rekapitulasi Produksi Kawanan Sapi Perah (${cows.length} Ekor)*:\n\n📅 *Tanggal:* ${displayDate}\n🥛 *Produksi Harian:* ${totalLiters.toFixed(1)} Liter (Rata-rata ${(totalLiters / (cows.length || 1)).toFixed(1)} L/ekor)\n🟢 *Sapi Sehat Produktif:* ${healthyCount} Ekor\n🟡 *Karantina / Pemulihan:* ${sickCount} Ekor\n🧪 *Kategori Kesehatan:* SNI Grade A Bebas Mastitis\n\nTerlampir file laporan resmi tersertifikasi MowTitis AI System.`,
+    pasca_medis: `*Yth. Tim Medis Veteriner & Koperasi*\n\nUpdate *Pasca Pemulihan Mastitis Sapi #04 (Mawar)*:\n\n💉 *Terapi:* Salep Intramammar (Tube 3/3 Tuntas)\n⏱️ *Masa Withdrawal:* Selesai (Bebas Residu)\n🔬 *Hasil Rapid Test SCC:* Sehat (Negatif / Lolos Karantina)\n✅ *Rekomendasi:* Sapi telah kembali ke Milk Parlor Utama.\n\n_Salam hormat,_\n*Mantri Ternak Rembangan*`
   };
 
   const [message, setMessage] = useState(templates[reportType]);
