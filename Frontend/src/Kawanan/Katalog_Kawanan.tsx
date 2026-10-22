@@ -3,7 +3,7 @@ import type { ScreenType } from '../App.tsx';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
 
 interface KatalogKawananProps {
-  onNavigate?: (screen: ScreenType) => void;
+  onNavigate?: (screen: ScreenType, cowId?: string) => void;
 }
 
 interface CowRecord {
@@ -444,14 +444,18 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                       </td>
 
                       <td className="py-3 px-4 align-middle">
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div 
+                          onClick={() => onNavigate?.('profil_sapi', cow.id.replace('#', ''))}
+                          className="flex items-center gap-3 min-w-0 cursor-pointer group"
+                          title={`Buka Profil Lengkap Sapi ${cow.name} (${cow.id})`}
+                        >
                           <img 
                             src={cow.photoUrl} 
                             alt={cow.name}
-                            className="w-11 h-11 rounded-xl object-cover bg-slate-100 border border-slate-200 shrink-0"
+                            className="w-11 h-11 rounded-xl object-cover bg-slate-100 border border-slate-200 shrink-0 group-hover:ring-2 group-hover:ring-[#006b5f] transition-all"
                           />
                           <div className="flex flex-col min-w-0">
-                            <span className="font-extrabold text-[14px] text-[#111c2d] truncate">{cow.name}</span>
+                            <span className="font-extrabold text-[14px] text-[#111c2d] group-hover:text-[#00450d] transition-colors truncate">{cow.name}</span>
                             <span className="text-[11px] text-[#41493e] truncate">{cow.breed}</span>
                           </div>
                         </div>
@@ -518,30 +522,39 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                       </td>
 
                       <td className="py-3 px-4 align-middle text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {cow.id === '#04' && (
-                            <button 
-                              onClick={() => onNavigate?.('profil_sapi')}
-                              className="px-2.5 py-1 rounded-full bg-[#8df5e4] hover:bg-[#70d8c8] text-[#00201c] text-[11px] font-bold transition-all shadow-xs flex items-center gap-1"
-                              title="Lihat Profil Sapi Mawar"
-                            >
-                              <span className="material-symbols-outlined text-[13px]">badge</span> Profil
-                            </button>
-                          )}
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
                           <button 
-                            onClick={() => onNavigate?.('deteksi')}
-                            className="px-2.5 py-1 rounded-full bg-[#f0f3ff] hover:bg-[#dee8ff] text-[#111c2d] text-[11px] font-bold transition-colors border border-slate-200"
-                            title="Buka Pemeriksaan Ambing CNN"
+                            onClick={() => onNavigate?.('profil_sapi', cow.id.replace('#', ''))}
+                            className="px-2.5 py-1 rounded-full bg-[#8df5e4] hover:bg-[#70d8c8] text-[#00201c] text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                            title={`Buka Profil Sapi ${cow.name} (${cow.id})`}
                           >
-                            Ambing
+                            <span className="material-symbols-outlined text-[13px]">badge</span> Profil
                           </button>
+
                           <button 
-                            onClick={() => onNavigate?.('prediksi')}
-                            className="px-2.5 py-1 rounded-full bg-[#1b5e20] text-white hover:bg-[#00450d] text-[11px] font-bold transition-all shadow-sm flex items-center gap-1"
-                            title="Buka Model Pakan XGBoost"
+                            onClick={() => onNavigate?.('riwayat_sapi', cow.id.replace('#', ''))}
+                            className="px-2.5 py-1 rounded-full bg-[#dee8ff] hover:bg-[#c6d7ff] text-[#00450d] text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                            title={`Buka Riwayat Rekam Medis & Laktasi Sapi ${cow.name} (${cow.id})`}
+                          >
+                            <span className="material-symbols-outlined text-[13px]">history</span> Riwayat
+                          </button>
+
+                          <button 
+                            onClick={() => onNavigate?.('deteksi', cow.id.replace('#', ''))}
+                            className="px-2.5 py-1 rounded-full bg-[#f0f3ff] hover:bg-[#dee8ff] text-[#111c2d] text-[11px] font-bold transition-colors border border-slate-200 cursor-pointer flex items-center gap-1"
+                            title={`Skrining Mastitis AI Sapi ${cow.name} (${cow.id})`}
+                          >
+                            <span className="material-symbols-outlined text-[13px] text-[#006b5f]">photo_camera</span> Ambing
+                          </button>
+
+                          <button 
+                            onClick={() => onNavigate?.('prediksi', cow.id.replace('#', ''))}
+                            className="px-2.5 py-1 rounded-full bg-[#1b5e20] text-white hover:bg-[#00450d] text-[11px] font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                            title={`Hitung Kebutuhan Nutrisi & Pakan AI Sapi ${cow.name} (${cow.id})`}
                           >
                             <span className="material-symbols-outlined text-[13px]">psychology</span> Pakan
                           </button>
+
                           {activeCategory === 'Arsip' ? (
                             <button 
                               onClick={async () => {

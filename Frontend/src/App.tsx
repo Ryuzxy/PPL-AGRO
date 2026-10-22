@@ -39,6 +39,8 @@ import SesiPemerahanSusu from './Pemerahan_Susu/Sesi_Pemerahan_Susu.tsx';
 import DashboardPascaPemulihan from './Pengobatan/Dashboard_Pasca_Pemulihan.tsx';
 import CatatPengobatanMastitis from './Pengobatan/Catat_Pengobatan_Mastitis.tsx';
 import ProfilRekamMedisSapi from './Profile/Sapi/Profil_Rekam_Medis_Sapi.tsx';
+import ProfilSapiDetail from './Profile/Sapi/Profil_Sapi_Detail.tsx';
+import RiwayatRekamMedisSapi from './Profile/Sapi/Riwayat_Rekam_Medis_Sapi.tsx';
 import RapidTestSCC from './Test_Kesehatan/Rapid_Test_SCC.tsx';
 
 export type ScreenType =
@@ -69,13 +71,18 @@ export type ScreenType =
   | 'pasca_pemulihan'
   | 'catat_pengobatan'
   | 'profil_sapi'
+  | 'riwayat_sapi'
   | 'rapid_test'
   | string;
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('opening');
+  const [selectedCowId, setSelectedCowId] = useState<string>('07');
 
-  const handleNavigate = (screen: any) => {
+  const handleNavigate = (screen: any, cowId?: string) => {
+    if (cowId) {
+      setSelectedCowId(cowId.replace('#', '').trim());
+    }
     setCurrentScreen(screen);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -130,7 +137,7 @@ export default function App() {
 
       {/* 6. AI Deteksi Mastitis YOLO v26 & RFID */}
       {(currentScreen === 'deteksi' || currentScreen === 'deteksi_mastitis_cnn_inspeksi' || currentScreen === 'deteksi_mastitis_yolo_sapi12') && (
-        <DeteksiCNN onNavigate={handleNavigate} />
+        <DeteksiCNN onNavigate={handleNavigate} cowId={selectedCowId} />
       )}
       {currentScreen === 'pilih_sapi_deteksi_cnn' && (
         <PilihSapiDeteksiCNN onNavigate={handleNavigate} />
@@ -151,9 +158,9 @@ export default function App() {
         <TelemetriRutin onNavigate={handleNavigate} />
       )}
 
-      {/* 7. Prediksi Laktasi & Simulasi Pakan */}
+      {/* 7. Prediksi Laktasi & Simulasi Pakan AI */}
       {(currentScreen === 'prediksi' || currentScreen === 'prediksi_ann_sapi07' || currentScreen === 'prediksi_xgboost_sapi12') && (
-        <PrediksiLaktasiPakan onNavigate={handleNavigate} />
+        <PrediksiLaktasiPakan onNavigate={handleNavigate} cowId={selectedCowId} />
       )}
       {(currentScreen === 'simulasi_whatif' || currentScreen === 'simulasi_whatif_sapi12' || currentScreen === 'simulasi_hemat_sapi12' || currentScreen === 'aplikasi_formula_pakan_sapi07' || currentScreen === 'aplikasi_pakan_sapi12' || currentScreen === 'pakan_selesai_sapi07') && (
         <SimulasiPakanWhatIf
@@ -167,14 +174,20 @@ export default function App() {
         <SesiPemerahanSusu onNavigate={handleNavigate} />
       )}
 
-      {/* 9. Pengobatan & Rekam Medis */}
+      {/* 9. Pengobatan & Rekam Medis (Dedicated Profile & History Separated) */}
       {currentScreen === 'pasca_pemulihan' && (
         <DashboardPascaPemulihan onNavigate={handleNavigate} />
       )}
       {(currentScreen === 'catat_pengobatan' || currentScreen === 'catat_salep_tube_2' || currentScreen === 'catat_salep_tube_3') && (
         <CatatPengobatanMastitis onNavigate={handleNavigate} />
       )}
-      {(currentScreen === 'profil_sapi' || currentScreen === 'profil_rekam_medis' || currentScreen === 'profil_rekam_medis_tube3' || currentScreen === 'profil_rekam_medis_rescan2' || currentScreen === 'profil_rekam_medis_tube2' || currentScreen === 'profil_rekam_medis_awal') && (
+      {currentScreen === 'profil_sapi' && (
+        <ProfilSapiDetail onNavigate={handleNavigate} cowId={selectedCowId} />
+      )}
+      {(currentScreen === 'riwayat_sapi' || currentScreen === 'riwayat_rekam_medis') && (
+        <RiwayatRekamMedisSapi onNavigate={handleNavigate} cowId={selectedCowId} />
+      )}
+      {(currentScreen === 'profil_rekam_medis' || currentScreen === 'profil_rekam_medis_tube3' || currentScreen === 'profil_rekam_medis_rescan2' || currentScreen === 'profil_rekam_medis_tube2' || currentScreen === 'profil_rekam_medis_awal') && (
         <ProfilRekamMedisSapi onNavigate={handleNavigate} />
       )}
       {currentScreen === 'rapid_test' && (

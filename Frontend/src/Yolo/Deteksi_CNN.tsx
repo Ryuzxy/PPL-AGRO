@@ -4,10 +4,20 @@ import { supabase } from '../lib/supabase';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
 
 interface DeteksiCNNProps {
-  onNavigate?: (screen: any) => void;
+  onNavigate?: (screen: any, cowId?: string) => void;
+  cowId?: string;
 }
 
-export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
+const AVAILABLE_COWS = [
+  { id: '04', name: 'Mawar', rfid: 'RF-004', dim: 110, breed: 'Friesian Holstein Murni', status: 'Bebas Mastitis / Sehat Prima', yield: '22.4 L', photo: 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&w=400&q=80', dbId: 1 },
+  { id: '07', name: 'Cantik', rfid: 'RF-007', dim: 75, breed: 'Friesian Holstein Grati', status: 'Sembuh Pasca Terapi Tube 3', yield: '19.8 L', photo: 'https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?auto=format&fit=crop&w=400&q=80', dbId: 2 },
+  { id: '12', name: 'Melati', rfid: 'RF-012', dim: 42, breed: 'Friesian Holstein Murni', status: 'Laktasi Awal (Perlu Cek Rutin)', yield: '16.4 L', photo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD8TCZKPzc5fw-wXzsxXtevt2Amche1K_arWzrA36uNyFGoib3Q9dTwTPi2ZU2xb6lnSS0exsVRtWwEMKA22CpqAzCS3pPZ5tBkBCaVgsL9V7yg33k_-Pk3dUWw4029zJqyPqnYRmoY-NoVSepXxxZI7_c7aHKRWEqR57LQYjxiX_38RsAC-EOXRVSVey2HOCIu_BzI5XEKa09E5PwrWkG2Kxb56f3wixlvNdiDAMWTYfvPa9V2Q4M8', dbId: 3 },
+  { id: '18', name: 'Sekar', rfid: 'RF-018', dim: 95, breed: 'FH Silang Peranakan', status: 'Sehat Produktif', yield: '17.2 L', photo: 'https://images.unsplash.com/photo-1527153857715-3908f2bae5e8?auto=format&fit=crop&w=400&q=80', dbId: 4 },
+  { id: '21', name: 'Kenanga', rfid: 'RF-021', dim: 140, breed: 'Friesian Holstein (FH)', status: 'Sehat Stabil', yield: '15.0 L', photo: 'https://images.unsplash.com/photo-1596733430284-f7437764b14d?auto=format&fit=crop&w=400&q=80', dbId: 5 },
+  { id: '25', name: 'Srikandi', rfid: 'RF-025', dim: 60, breed: 'FH Super Elite', status: 'Puncak Laktasi Higienis', yield: '24.1 L', photo: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=400&q=80', dbId: 6 },
+];
+
+export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps) {
   const [selectedQuarter, setSelectedQuarter] = useState<string>('kb');
   const [isCapturing, setIsCapturing] = useState(false);
   const [showShutterFlash, setShowShutterFlash] = useState(false);
@@ -17,19 +27,17 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
 
   // Selected Cattle info
   const [selectedCow, setSelectedCow] = useState(() => {
-    try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('mowtitis_selected_cow') : null;
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return {
-      id: '12',
-      name: 'Melati',
-      rfid: 'RF-012',
-      dim: 42,
-      breed: 'Friesian Holstein Murni',
-      status: 'Perlu Cek Ambing'
-    };
+    const clean = cowId.replace('#', '').trim();
+    return AVAILABLE_COWS.find((c) => c.id === clean) || AVAILABLE_COWS[1];
   });
+
+  useEffect(() => {
+    if (cowId) {
+      const clean = cowId.replace('#', '').trim();
+      const found = AVAILABLE_COWS.find((c) => c.id === clean);
+      if (found) setSelectedCow(found);
+    }
+  }, [cowId]);
 
   // Camera & Tracking states
   const [cameraActive, setCameraActive] = useState<boolean>(false);
@@ -658,53 +666,75 @@ export default function DeteksiCNN({ onNavigate }: DeteksiCNNProps) {
               </h1>
             </div>
 
-            {/* Cattle Selector & RFID Badge */}
-            <div className="flex items-center gap-3 bg-[#f0f3ff] p-1.5 rounded-xl shadow-inner border border-slate-200/60 self-start xl:self-auto">
-              <div className="flex items-center gap-2.5 px-3 py-1.5 bg-white rounded-lg shadow-sm">
-                <span className="material-symbols-outlined text-[#1b5e20] text-[22px]">contactless</span>
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-[#717a6d] uppercase tracking-wider">Tanda Sapi (RFID)</span>
-                  <span className="text-[14px] font-extrabold text-[#111c2d]">#{selectedCow.id} - {selectedCow.name}</span>
-                </div>
-              </div>
-              <div className="hidden sm:flex flex-col pr-3 pl-1 text-[12px]">
-                <span className="font-semibold text-[#111c2d]">{selectedCow.breed} • H-{selectedCow.dim} Laktasi</span>
-                <span className="text-[#006b5f] font-bold flex items-center gap-1 text-[11px]">
-                  <span className="material-symbols-outlined text-[13px]">verified</span> {selectedCow.status}
-                </span>
-              </div>
+            {/* Cattle Selector & Quick Navigation */}
+            <div className="flex flex-wrap items-center gap-2 self-start xl:self-auto">
+              {/* Quick links to Profile & Medical History */}
               <button 
-                onClick={() => {
-                  let nextCow;
-                  if (selectedCow.id === '04') {
-                    nextCow = {
-                      id: '12',
-                      name: 'Melati',
-                      rfid: 'RF-012',
-                      dim: 42,
-                      breed: 'Friesian Holstein Murni',
-                      status: 'Laktasi Peak'
-                    };
-                  } else {
-                    nextCow = {
-                      id: '04',
-                      name: 'Mawar',
-                      rfid: 'RF-004',
-                      dim: 142,
-                      breed: 'Friesian Holstein',
-                      status: 'Bebas Karantina'
-                    };
-                  }
-                  setSelectedCow(nextCow);
-                  try {
-                    localStorage.setItem('mowtitis_selected_cow', JSON.stringify(nextCow));
-                  } catch {}
-                }}
-                className="p-2 rounded-lg bg-[#dee8ff] text-[#111c2d] hover:bg-[#d8e3fb] transition-colors flex items-center justify-center cursor-pointer"
-                title="Ganti Sapi"
+                onClick={() => onNavigate?.('profil_sapi', selectedCow.id)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#8df5e4] hover:bg-[#70d8c8] text-[#00201c] transition-colors text-[12px] font-bold shadow-xs cursor-pointer"
+                title={`Buka Profil Sapi ${selectedCow.name}`}
               >
-                <span className="material-symbols-outlined text-[20px]">swap_horiz</span>
+                <span className="material-symbols-outlined text-[16px]">badge</span>
+                <span>Buka Profil #{selectedCow.id}</span>
               </button>
+
+              <button 
+                onClick={() => onNavigate?.('riwayat_sapi', selectedCow.id)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#dee8ff] hover:bg-[#c6d7ff] text-[#00450d] transition-colors text-[12px] font-bold shadow-xs cursor-pointer"
+                title={`Buka Riwayat Medis Sapi ${selectedCow.name}`}
+              >
+                <span className="material-symbols-outlined text-[16px]">history</span>
+                <span>Riwayat Medis</span>
+              </button>
+
+              <button 
+                onClick={() => onNavigate?.('prediksi', selectedCow.id)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#1b5e20] hover:bg-[#00450d] text-white transition-colors text-[12px] font-bold shadow-xs cursor-pointer"
+                title={`Hitung Pakan AI Sapi ${selectedCow.name}`}
+              >
+                <span className="material-symbols-outlined text-[16px]">psychology</span>
+                <span>Pakan AI</span>
+              </button>
+            </div>
+          </div>
+
+          {/* HORIZONTAL COW SWITCHER PILLS */}
+          <div className="w-full px-4 sm:px-8 pt-4 pb-2 bg-[#f0f3ff]/60 border-b border-slate-200/50">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#717a6d] shrink-0 mr-1 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[15px] text-[#006b5f]">cruelty_free</span> Sapi Target:
+              </span>
+              {AVAILABLE_COWS.map((cow) => {
+                const isSelected = selectedCow.id === cow.id;
+                return (
+                  <button
+                    key={cow.id}
+                    onClick={() => {
+                      setSelectedCow(cow);
+                      try {
+                        localStorage.setItem('mowtitis_selected_cow', JSON.stringify(cow));
+                      } catch {}
+                    }}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all shrink-0 cursor-pointer border ${
+                      isSelected
+                        ? 'bg-[#1b5e20] text-white border-[#00450d] shadow-sm font-bold scale-[1.02]'
+                        : 'bg-white text-[#111c2d] border-slate-200 hover:bg-[#dee8ff] text-[12px]'
+                    }`}
+                  >
+                    <img
+                      src={cow.photo}
+                      alt={cow.name}
+                      className="w-6 h-6 rounded-md object-cover bg-slate-200 shrink-0"
+                    />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[12px] font-bold leading-tight truncate">#{cow.id} {cow.name}</span>
+                      <span className={`text-[10px] leading-tight truncate ${isSelected ? 'text-white/80' : 'text-[#717a6d]'}`}>
+                        {cow.status.split('/')[0].trim()}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

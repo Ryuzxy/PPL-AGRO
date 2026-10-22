@@ -92,7 +92,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           <button
             onClick={() => onNavigate?.('katalog')}
             className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all text-left ${
-              isScreenActive('katalog', ['ringkasan_produksi_kawanan', 'profil_sapi'])
+              isScreenActive('katalog', ['ringkasan_produksi_kawanan', 'profil_sapi', 'riwayat_sapi'])
                 ? 'bg-[#1b5e20] text-white font-bold shadow-sm'
                 : 'text-[#41493e] hover:bg-[#dee8ff] hover:text-[#111c2d] font-semibold text-[14px]'
             }`}
