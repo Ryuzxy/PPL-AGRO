@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { aiApi } from '../lib/aiApi';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
+import './yolo-mobile.css';
 
 interface DeteksiMastitisCNNInspeksiProps {
   onBack?: () => void;
@@ -77,6 +78,12 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
   const startCamera = useCallback(async (facing: 'environment' | 'user') => {
     try {
       setCameraError(null);
+
+      // Mobile browsers block getUserMedia on plain HTTP, except localhost.
+      if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+        throw new Error('Kamera mobile membutuhkan HTTPS. Buka aplikasi melalui URL HTTPS.');
+      }
+
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       }
@@ -116,10 +123,14 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
       console.warn('Gagal mengakses kamera:', err);
       setCameraActive(false);
       setCameraError(
-        err.name === 'NotAllowedError'
+        err.message?.includes('HTTPS')
+          ? err.message
+          : err.name === 'NotAllowedError'
           ? 'Izin kamera ditolak. Silakan izinkan akses kamera di browser Anda.'
           : err.name === 'NotFoundError'
             ? 'Perangkat kamera tidak ditemukan.'
+            : err.name === 'NotReadableError'
+              ? 'Kamera sedang digunakan aplikasi lain.'
             : `Tidak dapat membuka kamera: ${err.message || 'Error hardware'}`
       );
     }
@@ -298,6 +309,7 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={handleFileSelect}
       />
@@ -309,10 +321,10 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
       <DesktopSidebar currentScreen="deteksi" onNavigate={onNavigate} />
 
       {/* MAIN CONTENT WRAPPER */}
-      <div className="flex-1 lg:pl-72 w-full flex flex-col">
+      <div className="yolo-inspection flex-1 lg:pl-72 w-full flex flex-col">
         {/* Top Header */}
         <header className="sticky top-0 w-full z-40 bg-[#f9f9ff]/90 backdrop-blur-xl border-b border-[#dee8ff] shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-          <div className="h-16 px-4 md:px-6 flex items-center justify-between gap-3 max-w-4xl mx-auto">
+          <div className="yolo-header-inner h-16 px-4 md:px-6 flex items-center justify-between gap-3 max-w-4xl mx-auto">
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <button
                 type="button"
@@ -368,7 +380,7 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
         {/* WORKSPACE BODY */}
         <main className="flex flex-col relative w-full pt-4 pb-28 lg:pb-12 max-w-4xl mx-auto px-4 flex-1">
           {/* Top Engine Specs Banner */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#dee8ff] mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="yolo-engine-banner bg-white rounded-2xl p-4 shadow-sm border border-[#dee8ff] mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-xl bg-[#00450d] text-[#8df5e4] flex items-center justify-center font-black text-xs shrink-0 shadow-sm">
                 v26
@@ -416,7 +428,7 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
           </div>
 
           {/* Mode Switcher Tabs */}
-          <div className="grid grid-cols-3 gap-1.5 bg-[#dee8ff]/70 p-1.5 rounded-2xl mb-4 text-xs font-bold">
+          <div className="yolo-mode-tabs grid grid-cols-3 gap-1.5 bg-[#dee8ff]/70 p-1.5 rounded-2xl mb-4 text-xs font-bold">
             <button
               type="button"
               onClick={() => setMode('yolo_box')}
@@ -455,7 +467,7 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
           </div>
 
           {/* PRIMARY VIEWFINDER WORKSPACE */}
-          <div className="relative w-full aspect-[4/3] sm:aspect-[16/10] md:aspect-[16/9] max-h-[560px] rounded-3xl overflow-hidden bg-black shadow-2xl border-2 border-slate-800">
+          <div className="yolo-viewfinder relative w-full aspect-[4/3] sm:aspect-[16/10] md:aspect-[16/9] max-h-[560px] rounded-3xl overflow-hidden bg-black shadow-2xl border-2 border-slate-800">
             {/* Real Live Video Feed */}
             <video
               ref={videoRef}
@@ -476,14 +488,19 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
                 <div className="w-16 h-16 rounded-2xl bg-[#00450d] text-[#8df5e4] flex items-center justify-center shadow-lg">
                   <span className="material-symbols-outlined text-[36px]">videocam_off</span>
                 </div>
-                <div className="max-w-sm">
-                  <h3 className="text-base font-extrabold text-white mb-1">
-                    {cameraError ? 'Akses Kamera Terkendala' : 'Menghubungkan ke Sensor Kamera...'}
-                  </h3>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    {cameraError || 'Aktifkan izin kamera untuk mengaktifkan pemindaian visual otomatis YOLOv26 pada ambing sapi.'}
-                  </p>
-                </div>
+                 <div className="max-w-sm">
+                   <h3 className="text-base font-extrabold text-white mb-1">
+                     {cameraError ? 'Akses Kamera Terkendala' : 'Menghubungkan ke Sensor Kamera...'}
+                   </h3>
+                   <p className="text-xs text-slate-300 leading-relaxed">
+                     {cameraError || 'Aktifkan izin kamera untuk mengaktifkan pemindaian visual otomatis YOLOv26 pada ambing sapi.'}
+                   </p>
+                   {cameraError?.includes('HTTPS') && (
+                     <p className="text-[11px] text-[#acf4a4] mt-2 leading-relaxed">
+                       Gunakan HTTPS, atau jalankan di localhost saat pengembangan.
+                     </p>
+                   )}
+                 </div>
                 <div className="flex flex-col sm:flex-row gap-2.5 w-full max-w-xs mt-2">
                   <button
                     onClick={() => startCamera(currentFacing)}
@@ -497,7 +514,7 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
                     className="flex-1 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
                   >
                     <span className="material-symbols-outlined text-[18px]">photo_library</span>
-                    <span>Pilih Foto</span>
+                     <span>Kamera / Galeri</span>
                   </button>
                 </div>
               </div>
@@ -573,13 +590,13 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
               <span>YOLOv26 REAL-TIME 60FPS</span>
             </div>
 
-            <div className="absolute top-4 right-4 text-white text-xs font-mono font-bold bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg flex items-center gap-1.5 z-20">
+            <div className="yolo-hud-quality absolute top-4 right-4 text-white text-xs font-mono font-bold bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg flex items-center gap-1.5 z-20">
               <span className="material-symbols-outlined text-[16px] text-[#8df5e4]">fit_screen</span>
               <span>HD 720p • Focus Auto</span>
             </div>
 
             {/* Bottom HUD Bar inside Viewfinder */}
-            <div className="absolute bottom-4 inset-x-4 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 text-white flex items-center justify-between text-xs z-20">
+            <div className="yolo-hud-footer absolute bottom-4 inset-x-4 bg-black/80 backdrop-blur-md rounded-xl px-4 py-2 text-white flex items-center justify-between text-xs z-20">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[#acf4a4] text-[18px]">straighten</span>
                 <span>Jarak Sensor: <strong className="text-[#acf4a4]">45 cm</strong> (Optimal)</span>
@@ -607,7 +624,7 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
           </div>
 
           {/* PRIMARY SHUTTER & HARDWARE CONTROLS */}
-          <div className="flex items-center justify-between gap-4 py-4 px-2">
+          <div className="yolo-camera-controls flex items-center justify-between gap-4 py-4 px-2">
             {/* Gallery Upload Button */}
             <button
               type="button"
@@ -615,7 +632,7 @@ export const DeteksiMastitisCNNInspeksi: React.FC<DeteksiMastitisCNNInspeksiProp
               className="flex-1 h-13 rounded-2xl bg-white text-[#111c2d] shadow-sm flex items-center justify-center gap-2 text-xs font-bold active:scale-95 transition-all border border-[#dee8ff] hover:bg-[#f0f3ff]"
             >
               <span className="material-symbols-outlined text-[20px] text-[#006b5f]">photo_library</span>
-              <span>Galeri Foto</span>
+               <span>Kamera / Galeri</span>
             </button>
 
             {/* Large YOLOv26 Shutter Button */}

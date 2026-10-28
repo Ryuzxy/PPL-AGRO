@@ -56,6 +56,7 @@ def root():
         "docs": "/docs"
     }
 
+@app.get("/health", tags=["Sistem"])
 @app.get("/api/health", tags=["Sistem"])
 def health_check():
     return {
@@ -64,6 +65,20 @@ def health_check():
         "xgboost_loaded": predictor.xgb_model is not None,
         "cnn_loaded": predictor.cnn_model is not None,
         "torch_available": predictor.torch is not None
+    }
+
+@app.get("/v1/models", tags=["Sistem"])
+def list_models():
+    """OpenAI-compatible model discovery endpoint for frontend health checks."""
+    return {
+        "object": "list",
+        "data": [
+            {
+                "id": "mowtitis-dairy-ai",
+                "object": "model",
+                "owned_by": "mowtitis",
+            }
+        ],
     }
 
 # ==========================================
