@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ScreenType } from '../App.tsx';
 import { useCashflow, type CashTransaction } from '../hooks/useSupabaseData';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
+import { isFarmerSession } from '../auth';
 
 interface RiwayatKasProps {
   onNavigate?: (screen: ScreenType) => void;
@@ -84,13 +85,13 @@ export default function RiwayatKas({ onNavigate }: RiwayatKasProps) {
               >
                 <span className="material-symbols-outlined text-[18px]">print</span>
               </button>
-              <button 
+              {!isFarmerSession() && <button 
                 onClick={() => onNavigate?.('unduh_kas')}
                 className="w-9 h-9 rounded-full bg-[#e7eeff] flex items-center justify-center text-[#00450d] hover:bg-[#dee8ff] transition-colors"
                 title="Unduh Laporan PDF"
               >
                 <span className="material-symbols-outlined text-[18px]">download</span>
-              </button>
+              </button>}
             </div>
           </div>
         </header>
@@ -412,7 +413,7 @@ export default function RiwayatKas({ onNavigate }: RiwayatKasProps) {
                     </span>
                     <div className="flex items-center gap-2">
                       <span>{trx.time} • {trx.date}</span>
-                      {filterType === 'arsip' ? (
+                      {isFarmerSession() ? null : filterType === 'arsip' ? (
                         <button
                           type="button"
                           onClick={async (e) => {

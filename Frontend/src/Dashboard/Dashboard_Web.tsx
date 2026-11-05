@@ -6,9 +6,13 @@ import { useCows, useCashflow, useMilkTelemetry } from '../hooks/useSupabaseData
 
 interface DashboardWebProps {
   onNavigate?: (screen: any) => void;
+  userName?: string;
+  userRole?: 'owner' | 'farmer';
 }
 
-export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
+export default function DashboardWeb({ onNavigate, userName = 'Pengguna', userRole = 'farmer' }: DashboardWebProps) {
+  const displayRole = userRole === 'owner' ? 'Owner' : 'Farmer';
+  const displayName = userName.split('@')[0];
   const [clock, setClock] = useState('06:42:15 WIB');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const weatherHook = useWeather();
@@ -91,12 +95,12 @@ export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
             <div className="flex items-center gap-2">
               <img 
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" 
-                alt="Pak Hafid"
+                alt={displayName}
                 className="w-8 h-8 rounded-full object-cover border border-slate-200"
               />
               <div className="hidden sm:flex flex-col text-left">
-                <span className="text-[12px] font-bold text-[#111c2d] leading-tight">Pak Hafid</span>
-                <span className="text-[11px] text-[#41493e] leading-tight">Kepala Peternakan</span>
+                <span className="text-[12px] font-bold text-[#111c2d] leading-tight">{displayName}</span>
+                <span className="text-[11px] text-[#41493e] leading-tight">{displayRole}</span>
               </div>
             </div>
           </div>
@@ -116,7 +120,7 @@ export default function DashboardWeb({ onNavigate }: DashboardWebProps) {
               </div>
 
               <h1 className="text-[22px] sm:text-[28px] font-black text-[#00450d] tracking-tight">
-                Selamat Datang di Command Center MowTitis, Pak Hafid
+                Selamat Datang di Command Center MowTitis, {displayName}
               </h1>
 
               <p className="text-[13px] text-[#41493e] flex items-center gap-2 flex-wrap">

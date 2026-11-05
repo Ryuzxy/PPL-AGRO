@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { aiApi } from '../lib/aiApi';
 import { supabase } from '../lib/supabase';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
+import { useCows } from '../hooks/useSupabaseData';
 
 interface DeteksiCNNProps {
   onNavigate?: (screen: any, cowId?: string) => void;
@@ -23,7 +24,9 @@ export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps
   const [showShutterFlash, setShowShutterFlash] = useState(false);
   const [snapshotTaken, setSnapshotTaken] = useState(false);
   const [savedToCloud, setSavedToCloud] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { cows } = useCows();
 
   // Selected Cattle info
   const [selectedCow, setSelectedCow] = useState(() => {
@@ -32,12 +35,12 @@ export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps
   });
 
   useEffect(() => {
-    if (cowId) {
-      const clean = cowId.replace('#', '').trim();
-      const found = AVAILABLE_COWS.find((c) => c.id === clean);
-      if (found) setSelectedCow(found);
+    const clean = cowId.replace('#', '').trim();
+    const found = cows.find((c) => c.number.replace('#', '').trim() === clean || String(c.dbId) === clean);
+    if (found) {
+      setSelectedCow((current) => ({ ...current, id: found.number.replace('#', ''), name: found.name, dbId: found.dbId, photo: found.photoUrl }));
     }
-  }, [cowId]);
+  }, [cowId, cows]);
 
   // Camera & Tracking states
   const [cameraActive, setCameraActive] = useState<boolean>(false);
@@ -461,6 +464,84 @@ export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps
     };
   }, [startCamera, stopCamera]);
 
+  const saveInspection = async (result: {
+    status_prediksi: string;
+    confidence_skor: number;
+    probabilitas_mastitis: number;
+    kuartir_terdampak: string;
+    grade: string;
+  }, payload: any, imageBlob: Blob | null) => {
+    setSaveError(null);
+    let colorAnalysis: { average_rgb: [number, number, number]; redness_index: number } | null = null;
+    if (imageBlob) {
+      const bitmap = await createImageBitmap(imageBlob);
+      const canvas = document.createElement('canvas');
+      canvas.width = 32;
+      canvas.height = 32;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      if (context) {
+        context.drawImage(bitmap, 0, 0, 32, 32);
+        const pixels = context.getImageData(0, 0, 32, 32).data;
+        let red = 0;
+        let green = 0;
+        let blue = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          red += pixels[i];
+          green += pixels[i + 1];
+          blue += pixels[i + 2];
+        }
+        const count = pixels.length / 4;
+        const rgb: [number, number, number] = [Math.round(red / count), Math.round(green / count), Math.round(blue / count)];
+        colorAnalysis = { average_rgb: rgb, redness_index: Number(((rgb[0] - (rgb[1] + rgb[2]) / 2) / 255).toFixed(3)) };
+      }
+      bitmap.close();
+    }
+    const detail = {
+      ...(payload.detected_boxes ? { detected_boxes: payload.detected_boxes } : {}),
+      quarter: selectedQuarter,
+      visual_color: colorAnalysis || 'Tidak tersedia',
+      temperature_c: null,
+      temperature_source: 'Tidak tersedia: kamera RGB tidak mengukur suhu; gunakan kamera termal/sensor IR.',
+      ai_guidance: result.grade === 'A'
+        ? 'Tidak ada indikator visual kuat mastitis. Lanjutkan sanitasi, teat dip, dan pemantauan rutin.'
+        : 'Pisahkan susu kuartir terdampak, lakukan teat dip, ulangi pemeriksaan, dan hubungi dokter hewan bila gejala menetap.',
+    };
+
+    let photoId: number | null = null;
+    if (imageBlob) {
+      const path = `${selectedCow.dbId}/${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage.from('udder-inspections').upload(path, imageBlob, { contentType: 'image/jpeg', upsert: false });
+      if (uploadError) throw uploadError;
+      const { data: photo, error: photoError } = await supabase.from('foto_sapi').insert({
+        sapi_id: selectedCow.dbId,
+        url_foto: path,
+        keterangan: 'Foto cek ambing AI tersimpan di Storage.',
+        kuartir: selectedQuarter,
+      }).select('id').single();
+      if (photoError) throw photoError;
+      photoId = photo.id;
+    }
+
+    const { error } = await supabase.from('hasil_deteksi_mastitis').insert({
+      sapi_id: selectedCow.dbId,
+      foto_id: photoId,
+      model_engine: 'YOLOv26-XSeg (Dairy-Vision v26.4.1)',
+      status_deteksi: result.status_prediksi,
+      confidence_score: result.confidence_skor / 100,
+      grade: result.grade,
+      indeks_eritema: null,
+      detail_kuartir: detail,
+      rekomendasi_sop: result.grade === 'A'
+        ? 'Sehat secara visual. Lanjutkan teat dip dan pemeriksaan rutin.'
+        : 'Potensi mastitis. Isolasi susu terdampak dan konsultasikan ke dokter hewan.',
+    });
+    if (error) {
+      setSaveError(`Gagal menyimpan cek ambing: ${error.message}`);
+      throw error;
+    }
+    setSavedToCloud(true);
+  };
+
   // 3. Capture Snapshot & Execute YOLO v26 Inference
   const handleRetakeSnapshot = async () => {
     setIsCapturing(true);
@@ -498,10 +579,10 @@ export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps
         status_prediksi: prediction.status_prediksi || 'Grade A - Sehat & Higienis',
         kuartir_terdampak: prediction.kuartir_terdampak || 'Kanan Belakang (Target Healed)',
         detected_boxes: [
-          { label: 'Teat_FL (Kiri Depan)', confidence: 0.984, status: 'Sehat', temp: 38.2 },
-          { label: 'Teat_FR (Kanan Depan)', confidence: 0.979, status: 'Sehat', temp: 38.3 },
-          { label: 'Teat_RL (Kiri Belakang)', confidence: 0.991, status: 'Sehat', temp: 38.4 },
-          { label: 'Teat_RR (Kanan Belakang)', confidence: 0.986, status: 'Sembuh Total', temp: 38.4 },
+          { label: 'Teat_FL (Kiri Depan)', confidence: 0.984, status: 'Sehat', temperature_c: null, color: 'Tidak terukur' },
+          { label: 'Teat_FR (Kanan Depan)', confidence: 0.979, status: 'Sehat', temperature_c: null, color: 'Tidak terukur' },
+          { label: 'Teat_RL (Kiri Belakang)', confidence: 0.991, status: 'Sehat', temperature_c: null, color: 'Tidak terukur' },
+          { label: 'Teat_RR (Kanan Belakang)', confidence: 0.986, status: 'Sembuh Total', temperature_c: null, color: 'Tidak terukur' },
         ],
       };
 
@@ -516,28 +597,8 @@ export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps
       };
       setAiResult(newAiResult);
 
-      // Auto-save detection to Supabase
-      try {
-        const cowNum = parseInt(String(selectedCow.id).replace('#', ''), 10) || 1;
-        await supabase.from('hasil_deteksi_mastitis').insert([{
-          sapi_id: cowNum,
-          model_engine: 'YOLOv26-XSeg (Dairy-Vision v26.4.1)',
-          status_deteksi: newAiResult.status_prediksi,
-          confidence_score: newAiResult.confidence_skor / 100,
-          grade: newAiResult.grade,
-          indeks_eritema: 14.2,
-          detail_kuartir: {
-            kuartir_terdampak: newAiResult.kuartir_terdampak,
-            probabilitas_mastitis: newAiResult.probabilitas_mastitis,
-            quarter: selectedQuarter,
-          },
-          rekomendasi_sop: newAiResult.grade === 'A' 
-            ? 'Aman diperah. Rutin celup puting teat dip paska perah.' 
-            : 'Karantina dan laporkan ke dokter hewan / berikan salep mastitis.'
-        }]);
-      } catch (saveErr) {
-        console.warn('Supabase auto-record error:', saveErr);
-      }
+      // Auto-save the actual inspection, including the captured photo and AI guidance.
+      await saveInspection(newAiResult, yoloResultPayload, blob);
 
       setSnapshotTaken(true);
       setTimeout(() => setSnapshotTaken(false), 3800);
@@ -552,24 +613,8 @@ export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps
 
   const handleSaveToCloud = async () => {
     try {
-      setSavedToCloud(true);
-      const cowNum = parseInt(String(selectedCow.id).replace('#', ''), 10) || 1;
-      await supabase.from('hasil_deteksi_mastitis').insert([{
-        sapi_id: cowNum,
-        model_engine: 'YOLOv26-XSeg (Dairy-Vision v26.4.1)',
-        status_deteksi: aiResult.status_prediksi,
-        confidence_score: aiResult.confidence_skor / 100,
-        grade: aiResult.grade,
-        indeks_eritema: 14.2,
-        detail_kuartir: {
-          kuartir_terdampak: aiResult.kuartir_terdampak,
-          probabilitas_mastitis: aiResult.probabilitas_mastitis,
-          quarter: selectedQuarter,
-        },
-        rekomendasi_sop: aiResult.grade === 'A' 
-          ? 'Aman diperah. Rutin celup puting teat dip paska perah.' 
-          : 'Karantina dan laporkan ke dokter hewan / berikan salep mastitis.'
-      }]);
+      const stored = sessionStorage.getItem('mowtitis_last_prediction');
+      await saveInspection(aiResult, stored ? JSON.parse(stored) : {}, null);
     } catch (err) {
       console.warn('Manual cloud save error:', err);
     } finally {
@@ -1106,6 +1151,8 @@ export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps
                       </div>
                     </div>
                   </div>
+
+                  {saveError && <p className="text-xs text-[#ba1a1a] bg-[#ffdad6] border border-[#ba1a1a]/20 rounded-xl px-3 py-2" role="alert">{saveError}</p>}
 
                   {/* Actions & WhatsApp buttons */}
                   <div className="flex flex-col gap-2 pt-1">

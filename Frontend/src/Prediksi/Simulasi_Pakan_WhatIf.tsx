@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { isFarmerSession } from '../auth';
 
 interface SimulasiPakanWhatIfProps {
   onBack?: () => void;
@@ -91,6 +92,10 @@ export const SimulasiPakanWhatIf: React.FC<SimulasiPakanWhatIfProps> = ({
   };
 
   const handleConfirmApply = async () => {
+    if (isFarmerSession()) {
+      showToast('Farmer hanya dapat melihat dan memilih opsi pakan.');
+      return;
+    }
     setIsApplying(true);
     try {
       await supabase.from('pengeluaran').insert({

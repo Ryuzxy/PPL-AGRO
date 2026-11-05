@@ -4,9 +4,16 @@ import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), basicSsl()],
+  plugins: [
+    react(),
+    basicSsl({
+      name: 'mowtitis-local',
+      domains: ['localhost', 'mowtitis.localhost', '192.168.1.6'],
+    }),
+  ],
   server: {
-    host: true,
+    host: '0.0.0.0',
     port: 5173,
+    allowedHosts: ['mowtitis.localhost', '192.168.1.6'],
   },
 })

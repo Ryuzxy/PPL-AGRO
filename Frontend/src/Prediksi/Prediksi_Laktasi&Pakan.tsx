@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import type { ScreenType } from '../App.tsx';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
 import { supabase } from '../lib/supabase';
+import { isFarmerSession } from '../auth';
 import { useCows } from '../hooks/useSupabaseData';
 import { aiApi } from '../lib/aiApi';
 
@@ -255,6 +256,10 @@ export default function PrediksiLaktasiPakan({ onNavigate, cowId = '07' }: Predi
   const netIOFC = Math.max(0, milkRevenue - feedCost);
 
   const handleApply = async () => {
+    if (isFarmerSession()) {
+      setShowToast(true);
+      return;
+    }
     setShowToast(true);
     try {
       await supabase.from('pengeluaran').insert({

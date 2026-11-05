@@ -31,6 +31,7 @@ interface CowRecord {
 }
 
 import { useCows } from '../hooks/useSupabaseData';
+import { isFarmerSession } from '../auth';
 
 export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -232,13 +233,13 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                 <span>Ekspor PDF</span>
               </button>
 
-              <button 
+              {!isFarmerSession() && <button 
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#1b5e20] text-white hover:bg-[#00450d] transition-transform active:scale-95 text-[13px] font-bold shadow-sm cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[20px]">add_circle</span>
                 <span>+ Tambah Sapi Baru</span>
-              </button>
+              </button>}
             </div>
           </div>
 
@@ -555,7 +556,7 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                             <span className="material-symbols-outlined text-[13px]">psychology</span> Pakan
                           </button>
 
-                          {activeCategory === 'Arsip' ? (
+                          {!isFarmerSession() && (activeCategory === 'Arsip' ? (
                             <button 
                               onClick={async () => {
                                 try {
@@ -578,7 +579,7 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                             >
                               <span className="material-symbols-outlined text-[16px]">delete</span>
                             </button>
-                          )}
+                          ))}
                         </div>
                       </td>
                     </tr>

@@ -1,4 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import Login from './Login.tsx';
+import ProfileLanding from './ProfileLanding.tsx';
+import ErrorPage from './ErrorPage.tsx';
+import { canAccessScreen, getCurrentAppUser, recordActivity, setActiveRole, type AppUser } from './auth';
 
 // 1. Entry & Dashboards
 import Opening from './Opening.tsx';
@@ -73,22 +77,58 @@ export type ScreenType =
   | 'profil_sapi'
   | 'riwayat_sapi'
   | 'rapid_test'
+  | 'error_400'
+  | 'error_401'
+  | 'error_403'
+  | 'error_404'
+  | 'error_500'
   | string;
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('opening');
   const [selectedCowId, setSelectedCowId] = useState<string>('07');
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [showProfile, setShowProfile] = useState(true);
+
+  useEffect(() => {
+    getCurrentAppUser().then(setUser).finally(() => setCheckingSession(false));
+  }, []);
+
+  const handleAuthenticated = (authenticatedUser: AppUser) => {
+    setUser(authenticatedUser);
+    setShowProfile(true);
+    setCurrentScreen('dashboard');
+  };
+
+  const handleSignedOut = () => {
+    setActiveRole(null);
+    setUser(null);
+    setShowProfile(false);
+    setCurrentScreen('opening');
+  };
 
   const handleNavigate = (screen: any, cowId?: string) => {
-    if (cowId) {
-      setSelectedCowId(cowId.replace('#', '').trim());
+    if (screen.startsWith('error_')) {
+      setCurrentScreen(screen);
+      return;
     }
+    if (!user || !canAccessScreen(user.role, screen)) {
+      if (user) void recordActivity(user.id, 'access_denied', { screen });
+      return;
+    }
+    if (cowId) setSelectedCowId(cowId.replace('#', '').trim());
+    void recordActivity(user.id, 'navigate', { screen });
     setCurrentScreen(screen);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  if (checkingSession) return <div className="login-loading">Memuat sesi...</div>;
+  if (!user) return <Login onAuthenticated={handleAuthenticated} />;
+  if (showProfile) return <ProfileLanding user={user} onContinue={() => setShowProfile(false)} onSignedOut={handleSignedOut} />;
+
   return (
-    <div className="w-full min-h-screen">
+    <div key={currentScreen} className="screen-transition w-full min-h-screen">
       {/* 1. Opening & Splash */}
       {currentScreen === 'opening' && (
         <Opening onNavigateToDashboard={() => handleNavigate('dashboard')} />
@@ -96,7 +136,7 @@ export default function App() {
 
       {/* 2. Dashboards */}
       {currentScreen === 'dashboard' && (
-        <DashboardWeb onNavigate={handleNavigate} />
+        <DashboardWeb onNavigate={handleNavigate} userName={user.email} userRole={user.role} />
       )}
       {(currentScreen === 'dashboard_kandang_mowtitis' || currentScreen === 'dashboard_mobile') && (
         <DashboardKandangMowtitis onNavigate={handleNavigate} />
@@ -193,6 +233,11 @@ export default function App() {
       {currentScreen === 'rapid_test' && (
         <RapidTestSCC onNavigate={handleNavigate} />
       )}
+      {currentScreen === 'error_400' && <ErrorPage code={400} onHome={() => handleNavigate('dashboard')} onRetry={() => window.location.reload()} />}
+      {currentScreen === 'error_401' && <ErrorPage code={401} onHome={handleSignedOut} />}
+      {currentScreen === 'error_403' && <ErrorPage code={403} onHome={() => handleNavigate('dashboard')} />}
+      {currentScreen === 'error_404' && <ErrorPage code={404} onHome={() => handleNavigate('dashboard')} />}
+      {currentScreen === 'error_500' && <ErrorPage code={500} onHome={() => handleNavigate('dashboard')} onRetry={() => window.location.reload()} />}
     </div>
   );
 }

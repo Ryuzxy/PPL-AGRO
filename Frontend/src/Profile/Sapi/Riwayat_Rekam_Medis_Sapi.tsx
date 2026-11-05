@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { supabase } from '../../lib/supabase';
 import type { ScreenType } from '../../App.tsx';
 import { useCows } from '../../hooks/useSupabaseData';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../../components/Navigation';
@@ -15,9 +16,9 @@ export default function RiwayatRekamMedisSapi({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'mastitis' | 'susu' | 'reproduksi'>('mastitis');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [savedInspections, setSavedInspections] = useState<any[]>([]);
 
   const { cows: dbCows } = useCows();
-
   const selectedCow = useMemo(() => {
     if (!dbCows || dbCows.length === 0) return null;
     const cleanId = cowId.replace('#', '').trim();
@@ -26,6 +27,20 @@ export default function RiwayatRekamMedisSapi({
       dbCows[0]
     );
   }, [dbCows, cowId]);
+
+  const selectedCowDbId = selectedCow?.dbId;
+  useEffect(() => {
+    if (!selectedCowDbId) return;
+    supabase
+      .from('hasil_deteksi_mastitis')
+      .select('*')
+      .eq('sapi_id', selectedCowDbId)
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (error) console.warn('Gagal memuat riwayat cek ambing:', error);
+        else setSavedInspections(data || []);
+      });
+  }, [selectedCowDbId]);
 
   const name = selectedCow?.name || 'Sapi Perah';
   const tag = selectedCow?.number || `#${cowId}`;
@@ -390,7 +405,18 @@ export default function RiwayatRekamMedisSapi({
               </div>
 
               <div className="space-y-4 pt-1">
-                {mastitisLogs.map((log, index) => (
+                {[...savedInspections.map((inspection) => ({
+                  id: `db-${inspection.id}`,
+                  date: new Date(inspection.created_at).toLocaleString('id-ID'),
+                  engine: inspection.model_engine || 'AI cek ambing',
+                  status: inspection.status_deteksi,
+                  confidence: `${Math.round((inspection.confidence_score || 0) * 100)}%`,
+                  grade: `Grade ${inspection.grade || '-'}`,
+                  quarter: inspection.detail_kuartir?.quarter || inspection.detail_kuartir?.kuartir_terdampak || 'Tidak ditentukan',
+                  notes: inspection.rekomendasi_sop || inspection.detail_kuartir?.ai_guidance || 'Tidak ada panduan tambahan.',
+                  actionBadge: 'Tersimpan di Supabase',
+                  isDanger: inspection.grade !== 'A',
+                })), ...mastitisLogs].map((log, index) => (
                   <div key={log.id} className="flex gap-4 relative">
                     {/* Timeline Line */}
                     {index < mastitisLogs.length - 1 && (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useWeather } from '../../hooks/useWeather';
 import { WindyWeatherModal, WindyWeatherWidget } from '../Weather';
+import { isFarmerSession } from '../../auth';
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -43,7 +44,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     { id: 'rapid_test', label: 'Tes Cepat Susu (SCC)', icon: 'biotech' },
     { id: 'pemindai_rfid', label: 'Alat Pindai Sapi (RFID)', icon: 'contactless' },
     { id: 'unduh_kas', label: 'Cetak Laporan (PDF)', icon: 'file_download' },
-  ];
+  ].filter((item) => !isFarmerSession() || item.id === 'pemindai_rfid');
 
   return (
     <div className="lg:hidden fixed inset-0 z-50 flex">

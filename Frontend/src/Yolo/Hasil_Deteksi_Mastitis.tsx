@@ -249,7 +249,7 @@ export const HasilDeteksiMastitis: React.FC<HasilDeteksiMastitisProps> = ({
                       {box.status}
                     </span>
                     <span className="text-[10px] text-[#717a6d] font-mono mt-0.5">
-                      {box.temp ? `${box.temp}°C` : 'Suhu Normal'}
+                      {typeof box.temp === 'number' ? `${box.temp}°C · sensor IR` : 'Suhu: perlu sensor IR/termal'}
                     </span>
                   </div>
                 </div>

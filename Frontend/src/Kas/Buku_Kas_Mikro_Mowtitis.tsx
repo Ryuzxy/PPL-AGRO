@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ScreenType } from '../App.tsx';
 import { useCashflow, type CashTransaction } from '../hooks/useSupabaseData';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
+import { isFarmerSession } from '../auth';
 
 interface BukuKasMikroMowtitisProps {
   onNavigate?: (screen: ScreenType) => void;
@@ -293,14 +294,14 @@ export default function BukuKasMikroMowtitis({ onNavigate }: BukuKasMikroMowtiti
               >
                 Keluar
               </button>
-              <button 
+              {!isFarmerSession() && <button 
                 onClick={() => setActiveTab('arsip')}
                 className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
                   activeTab === 'arsip' ? 'bg-[#ba1a1a] text-white shadow-xs' : 'bg-[#ffdad6]/60 text-[#ba1a1a]'
                 }`}
               >
                 Arsip ({archivedTransactions.length})
-              </button>
+              </button>}
             </div>
           </div>
 
@@ -343,7 +344,7 @@ export default function BukuKasMikroMowtitis({ onNavigate }: BukuKasMikroMowtiti
                       </span>
                       <span className="block text-[10px] text-[#717a6d] font-semibold mt-0.5">{trx.badge}</span>
                     </div>
-                    {activeTab === 'arsip' ? (
+                    {isFarmerSession() ? null : activeTab === 'arsip' ? (
                       <button
                         type="button"
                         onClick={async (e) => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useWeather } from '../../hooks/useWeather';
 import { WindyWeatherModal, WindyWeatherWidget } from '../Weather';
+import { isFarmerSession } from '../../auth';
 
 interface DesktopSidebarProps {
   currentScreen: string;
@@ -114,8 +115,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           </button>
         </nav>
 
-        {/* Clinical Quick Access for Desktop */}
-        <div className="px-4 pt-4 mt-2">
+        {/* Owner-only clinical management shortcuts */}
+        {!isFarmerSession() && <div className="px-4 pt-4 mt-2">
           <div className="text-[11px] font-extrabold text-[#717a6d] uppercase px-2 py-1 tracking-wider">
             Aksi Cepat Kandang
           </div>
@@ -148,7 +149,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
               <span>Tes Cepat Susu (SCC)</span>
             </button>
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* Sidebar Status Widget */}

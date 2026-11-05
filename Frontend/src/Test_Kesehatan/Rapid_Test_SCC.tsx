@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ScreenType } from '../App.tsx';
 import { supabase } from '../lib/supabase';
+import { isFarmerSession } from '../auth';
 
 interface RapidTestSCCProps {
   onNavigate?: (screen: ScreenType) => void;
@@ -16,6 +17,10 @@ export default function RapidTestSCC({ onNavigate }: RapidTestSCCProps) {
   };
 
   const handleConfirmRelease = async () => {
+    if (isFarmerSession()) {
+      showToast('Akses farmer hanya untuk melihat hasil cek ambing.');
+      return;
+    }
     setReleased(true);
     showToast('Memperbarui status kesehatan Sapi Mawar di Supabase...');
     try {
