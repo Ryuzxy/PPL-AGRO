@@ -75,7 +75,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             }`}
           >
             <span className="material-symbols-outlined text-[20px]">photo_camera</span>
-            <span>Cek Ambing (Kamera)</span>
+            <span>Cek Ambing</span>
           </button>
 
           <button

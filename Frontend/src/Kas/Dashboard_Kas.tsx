@@ -5,6 +5,7 @@ import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Nav
 
 interface DashboardKasProps {
   onNavigate?: (screen: ScreenType) => void;
+  userName?: string;
 }
 
 interface Transaction {
@@ -24,7 +25,8 @@ interface Transaction {
   verifiedBy?: string;
 }
 
-export default function DashboardKas({ onNavigate }: DashboardKasProps) {
+export default function DashboardKas({ onNavigate, userName = 'Pengguna' }: DashboardKasProps) {
+  const displayName = userName.split('@')[0] || 'Pengguna';
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [period, setPeriod] = useState<'Bulan Ini' | 'Hari Ini' | '7 Hari'>('Bulan Ini');
   const [activeFilter, setActiveFilter] = useState<'all' | 'pemasukan' | 'pakan' | 'medis'>('all');
@@ -200,11 +202,11 @@ export default function DashboardKas({ onNavigate }: DashboardKasProps) {
             <div className="flex items-center gap-2">
               <img 
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" 
-                alt="Pak Hafid"
+                alt={displayName}
                 className="w-8 h-8 rounded-full object-cover border border-slate-200"
               />
               <div className="hidden sm:flex flex-col text-left">
-                <span className="text-[12px] font-bold text-[#111c2d] leading-tight">Pak Hafid</span>
+                <span className="text-[12px] font-bold text-[#111c2d] leading-tight">{displayName}</span>
                 <span className="text-[11px] text-[#41493e] leading-tight">Kepala Peternakan</span>
               </div>
             </div>

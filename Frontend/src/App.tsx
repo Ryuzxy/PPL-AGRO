@@ -86,7 +86,7 @@ export type ScreenType =
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('opening');
-  const [selectedCowId, setSelectedCowId] = useState<string>('07');
+  const [selectedCowId, setSelectedCowId] = useState<string>('mawar');
   const [user, setUser] = useState<AppUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [showProfile, setShowProfile] = useState(true);
@@ -117,7 +117,11 @@ export default function App() {
       if (user) void recordActivity(user.id, 'access_denied', { screen });
       return;
     }
-    if (cowId) setSelectedCowId(cowId.replace('#', '').trim());
+    if (screen === 'prediksi' && !cowId) {
+      setSelectedCowId('mawar');
+    } else if (cowId) {
+      setSelectedCowId(cowId.replace('#', '').trim());
+    }
     void recordActivity(user.id, 'navigate', { screen });
     setCurrentScreen(screen);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -128,7 +132,7 @@ export default function App() {
   if (showProfile) return <ProfileLanding user={user} onContinue={() => setShowProfile(false)} onSignedOut={handleSignedOut} />;
 
   return (
-    <div key={currentScreen} className="screen-transition w-full min-h-screen">
+    <div className="tab-content w-full min-h-screen">
       {/* 1. Opening & Splash */}
       {currentScreen === 'opening' && (
         <Opening onNavigateToDashboard={() => handleNavigate('dashboard')} />
@@ -144,7 +148,7 @@ export default function App() {
 
       {/* 3. Kas & Keuangan */}
       {currentScreen === 'kas' && (
-        <DashboardKas onNavigate={handleNavigate} />
+        <DashboardKas onNavigate={handleNavigate} userName={user.email} />
       )}
       {(currentScreen === 'buku_kas_mikro_mowtitis' || currentScreen === 'buku_kas_pasca_sapi07' || currentScreen === 'keuangan_kas_mikro') && (
         <BukuKasMikroMowtitis onNavigate={handleNavigate} />
@@ -169,7 +173,7 @@ export default function App() {
 
       {/* 5. Kawanan Ternak */}
       {currentScreen === 'katalog' && (
-        <KatalogKawanan onNavigate={handleNavigate} />
+        <KatalogKawanan onNavigate={handleNavigate} userName={user.email} />
       )}
       {currentScreen === 'ringkasan_produksi_kawanan' && (
         <RingkasanProduksiKawanan onNavigate={handleNavigate} />
@@ -177,7 +181,7 @@ export default function App() {
 
       {/* 6. AI Deteksi Mastitis YOLO v26 & RFID */}
       {(currentScreen === 'deteksi' || currentScreen === 'deteksi_mastitis_cnn_inspeksi' || currentScreen === 'deteksi_mastitis_yolo_sapi12') && (
-        <DeteksiCNN onNavigate={handleNavigate} cowId={selectedCowId} />
+        <DeteksiCNN onNavigate={handleNavigate} cowId={selectedCowId} userName={user.email} />
       )}
       {currentScreen === 'pilih_sapi_deteksi_cnn' && (
         <PilihSapiDeteksiCNN onNavigate={handleNavigate} />
@@ -200,7 +204,7 @@ export default function App() {
 
       {/* 7. Prediksi Laktasi & Simulasi Pakan AI */}
       {(currentScreen === 'prediksi' || currentScreen === 'prediksi_ann_sapi07' || currentScreen === 'prediksi_xgboost_sapi12') && (
-        <PrediksiLaktasiPakan onNavigate={handleNavigate} cowId={selectedCowId} />
+        <PrediksiLaktasiPakan key={`prediksi-${selectedCowId}`} onNavigate={handleNavigate} cowId={selectedCowId} />
       )}
       {(currentScreen === 'simulasi_whatif' || currentScreen === 'simulasi_whatif_sapi12' || currentScreen === 'simulasi_hemat_sapi12' || currentScreen === 'aplikasi_formula_pakan_sapi07' || currentScreen === 'aplikasi_pakan_sapi12' || currentScreen === 'pakan_selesai_sapi07') && (
         <SimulasiPakanWhatIf

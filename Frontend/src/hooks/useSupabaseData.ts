@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase, type Sapi, type Pemasukan, type Pengeluaran, type HistoriSusu } from '../lib/supabase';
 
 // Type representing a cow for the UI with both DB and display fields
@@ -242,13 +242,15 @@ export function useCows() {
 export function useCashflow() {
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [archivedTransactions, setArchivedTransactions] = useState<CashTransaction[]>([]);
-  const [totalBalance, setTotalBalance] = useState<number>(18946900); // Baseline start
+  const [totalBalance, setTotalBalance] = useState<number>(0);
   const [todayIncome, setTodayIncome] = useState<number>(0);
   const [todayExpense, setTodayExpense] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchVersion = useRef(0);
 
   const fetchTransactions = useCallback(async () => {
+    const requestVersion = ++fetchVersion.current;
     try {
       setLoading(true);
 
@@ -337,9 +339,10 @@ export function useCashflow() {
       activeList.sort((a, b) => b.dbId - a.dbId);
       archivedList.sort((a, b) => b.dbId - a.dbId);
 
-      // Starting reserve balance + sum of new dynamic cashflows
-      const baseReserve = 17500000;
-      setTotalBalance(baseReserve + sumIncome - sumExpense);
+      if (requestVersion !== fetchVersion.current) return;
+
+      // Cash balance must reflect database records only.
+      setTotalBalance(sumIncome - sumExpense);
       setTodayIncome(sumIncome);
       setTodayExpense(sumExpense);
       setTransactions(activeList);

@@ -7,6 +7,7 @@ import { useCows } from '../hooks/useSupabaseData';
 interface DeteksiCNNProps {
   onNavigate?: (screen: any, cowId?: string) => void;
   cowId?: string;
+  userName?: string;
 }
 
 const AVAILABLE_COWS = [
@@ -18,7 +19,8 @@ const AVAILABLE_COWS = [
   { id: '25', name: 'Srikandi', rfid: 'RF-025', dim: 60, breed: 'FH Super Elite', status: 'Puncak Laktasi Higienis', yield: '24.1 L', photo: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=400&q=80', dbId: 6 },
 ];
 
-export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps) {
+export default function DeteksiCNN({ onNavigate, cowId = '07', userName = 'Pengguna' }: DeteksiCNNProps) {
+  const displayName = userName.split('@')[0] || 'Pengguna';
   const [selectedQuarter, setSelectedQuarter] = useState<string>('kb');
   const [isCapturing, setIsCapturing] = useState(false);
   const [showShutterFlash, setShowShutterFlash] = useState(false);
@@ -36,9 +38,16 @@ export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps
 
   useEffect(() => {
     const clean = cowId.replace('#', '').trim();
-    const found = cows.find((c) => c.number.replace('#', '').trim() === clean || String(c.dbId) === clean);
+    const found = cows.find((c) => c.number.replace('#', '').trim() === clean || String(c.dbId) === clean || c.name.toLowerCase() === clean.toLowerCase());
     if (found) {
-      setSelectedCow((current) => ({ ...current, id: found.number.replace('#', ''), name: found.name, dbId: found.dbId, photo: found.photoUrl }));
+      const canonical = AVAILABLE_COWS.find((c) => c.name.toLowerCase() === found.name.toLowerCase());
+      setSelectedCow((current) => ({
+        ...current,
+        id: canonical?.id || found.number.replace('#', ''),
+        name: found.name,
+        dbId: found.dbId,
+        photo: found.photoUrl,
+      }));
     }
   }, [cowId, cows]);
 
@@ -676,11 +685,11 @@ export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps
             <div className="flex items-center gap-2">
               <img 
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" 
-                alt="Pak Hafid"
+                alt={displayName}
                 className="w-8 h-8 rounded-full object-cover border border-slate-200"
               />
               <div className="hidden sm:flex flex-col text-left">
-                <span className="text-[12px] font-bold text-[#111c2d] leading-tight">Pak Hafid</span>
+                <span className="text-[12px] font-bold text-[#111c2d] leading-tight">{displayName}</span>
                 <span className="text-[11px] text-[#41493e] leading-tight">Kepala Peternakan</span>
               </div>
             </div>
@@ -720,7 +729,7 @@ export default function DeteksiCNN({ onNavigate, cowId = '07' }: DeteksiCNNProps
                 title={`Buka Profil Sapi ${selectedCow.name}`}
               >
                 <span className="material-symbols-outlined text-[16px]">badge</span>
-                <span>Buka Profil #{selectedCow.id}</span>
+                <span>Profil Sapi {selectedCow.name}</span>
               </button>
 
               <button 

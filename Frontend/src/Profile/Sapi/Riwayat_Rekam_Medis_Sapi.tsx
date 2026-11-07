@@ -269,7 +269,7 @@ export default function RiwayatRekamMedisSapi({
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#dee8ff] text-[#111c2d] text-xs font-bold hover:bg-[#f0f3ff] transition-all shadow-xs"
             >
               <span className="material-symbols-outlined text-[16px] text-[#006b5f]">badge</span>
-              <span className="hidden sm:inline">Lihat Profil Utama</span>
+              <span className="hidden sm:inline">Lihat Profil Sapi</span>
             </button>
             <button
               onClick={() => onNavigate?.('catat_pengobatan')}

@@ -29,7 +29,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
   const mainModules = [
     { id: 'dashboard', label: 'Beranda Sistem', icon: 'dashboard', badge: 'Utama' },
-    { id: 'deteksi', label: 'Cek Ambing (Kamera)', icon: 'photo_camera', badge: 'Kamera AI' },
+    { id: 'deteksi', label: 'Cek Ambing', icon: 'photo_camera', badge: 'Kamera AI' },
     { id: 'prediksi', label: 'Perkiraan Susu & Pakan', icon: 'trending_up', badge: 'Perkiraan' },
     { id: 'simulasi_whatif', label: 'Hitung Campuran Pakan', icon: 'calculate', badge: 'Pakan' },
     { id: 'katalog', label: 'Daftar Semua Sapi', icon: 'pets', badge: 'Semua Sapi' },

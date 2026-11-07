@@ -10,6 +10,26 @@ interface DashboardWebProps {
   userRole?: 'owner' | 'farmer';
 }
 
+function DashboardSkeleton() {
+  return (
+    <div className="bg-[#f9f9ff] min-h-screen flex flex-col lg:flex-row animate-pulse" aria-label="Memuat data dashboard">
+      <aside className="hidden lg:flex w-72 min-h-screen bg-white border-r border-slate-100 p-6 flex-col gap-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-200" />
+          <div className="space-y-2 flex-1"><div className="h-3 w-24 bg-slate-200 rounded" /><div className="h-2 w-32 bg-slate-100 rounded" /></div>
+        </div>
+        <div className="space-y-3">{[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-11 bg-slate-100 rounded-xl" />)}</div>
+      </aside>
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="h-16 bg-white rounded-2xl border border-slate-100" />
+        <div className="space-y-3"><div className="h-8 w-2/3 bg-slate-200 rounded" /><div className="h-4 w-1/2 bg-slate-100 rounded" /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">{[1, 2, 3, 4].map((item) => <div key={item} className="h-40 bg-white rounded-2xl border border-slate-100" />)}</div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"><div className="lg:col-span-2 h-80 bg-white rounded-2xl border border-slate-100" /><div className="h-80 bg-white rounded-2xl border border-slate-100" /></div>
+      </main>
+    </div>
+  );
+}
+
 export default function DashboardWeb({ onNavigate, userName = 'Pengguna', userRole = 'farmer' }: DashboardWebProps) {
   const displayRole = userRole === 'owner' ? 'Owner' : 'Farmer';
   const displayName = userName.split('@')[0];
@@ -17,9 +37,10 @@ export default function DashboardWeb({ onNavigate, userName = 'Pengguna', userRo
   const [drawerOpen, setDrawerOpen] = useState(false);
   const weatherHook = useWeather();
 
-  const { cows } = useCows();
-  const { todayIncome, todayExpense, iofc } = useCashflow();
-  const { totalToday } = useMilkTelemetry();
+  const { cows, loading: cowsLoading } = useCows();
+  const { todayIncome, todayExpense, iofc, loading: cashLoading } = useCashflow();
+  const { totalToday, loading: milkLoading } = useMilkTelemetry();
+  const dataLoading = cowsLoading || cashLoading || milkLoading;
 
   const totalCows = cows.length;
   const laktasiCows = cows.filter(c => c.status === 'Laktasi').length;
@@ -27,7 +48,7 @@ export default function DashboardWeb({ onNavigate, userName = 'Pengguna', userRo
   const keringCows = cows.filter(c => c.status === 'Kering' || (!['Laktasi', 'Bunting'].includes(c.status))).length;
   const healthyCows = cows.filter(c => c.isHealthy).length;
   const totalMilkToday = totalToday > 0 ? totalToday : +(cows.reduce((sum, c) => sum + (c.milkYield || 0), 0)).toFixed(1);
-  const displayIofc = iofc > 0 ? iofc : (todayIncome > todayExpense ? (todayIncome - todayExpense) : 702400);
+  const displayIofc = iofc || todayIncome - todayExpense;
 
   useEffect(() => {
     const updateTime = () => {
@@ -40,6 +61,8 @@ export default function DashboardWeb({ onNavigate, userName = 'Pengguna', userRo
     const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  if (dataLoading) return <DashboardSkeleton />;
 
   return (
     <div className="bg-[#f9f9ff] font-sans text-[#111c2d] min-h-screen antialiased flex flex-col lg:flex-row">
@@ -140,7 +163,7 @@ export default function DashboardWeb({ onNavigate, userName = 'Pengguna', userRo
                 className="flex items-center gap-1.5 py-2.5 px-4 rounded-full bg-[#1b5e20] text-white text-[13px] font-bold hover:bg-[#00450d] active:scale-95 transition-all shadow-sm"
               >
                 <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
-                <span>Pindai Ambing CNN</span>
+                <span>Cek Ambing</span>
               </button>
 
               <button 

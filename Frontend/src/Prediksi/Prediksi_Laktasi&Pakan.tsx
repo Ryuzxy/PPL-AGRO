@@ -24,10 +24,10 @@ interface PreTrainedFeedResult {
   total_siklus_liter: number;
 }
 
-export default function PrediksiLaktasiPakan({ onNavigate, cowId = '07' }: PrediksiLaktasiPakanProps) {
+export default function PrediksiLaktasiPakan({ onNavigate, cowId = '04' }: PrediksiLaktasiPakanProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeCowTag, setActiveCowTag] = useState<string>(cowId.replace('#', '').trim());
-  const { cows: dbCows } = useCows();
+  const { cows: dbCows, loading: cowsLoading } = useCows();
 
   // Selected cow data
   const cowList = useMemo(() => {
@@ -125,20 +125,24 @@ export default function PrediksiLaktasiPakan({ onNavigate, cowId = '07' }: Predi
     ];
 
     if (dbCows && dbCows.length > 0) {
-      return defaultList.map((d) => {
-        const found = dbCows.find((c) => c.number.replace('#', '').trim() === d.tag);
-        if (found) {
-          return {
-            ...d,
-            name: found.name,
-            weight: Number(found.raw.berat_badan) || d.weight,
-            yieldToday: Number(found.raw.rerata_produksi_harian) || d.yieldToday,
-            bcs: Number(found.raw.skor_bcs) || d.bcs,
-            phase: found.raw.fase_laktasi || d.phase,
-            photo: found.photoUrl || found.image || d.photo,
-          };
-        }
-        return d;
+      return dbCows.map((found, index) => {
+        const cleanDbTag = found.number.replace('#', '').trim();
+        const fallback = defaultList.find(
+          (d) => d.name.toLowerCase() === found.name.toLowerCase()
+        ) || defaultList[index] || defaultList[0];
+
+        return {
+          ...fallback,
+          tag: cleanDbTag,
+          name: found.name,
+          stall: found.raw.lokasi_kandang || fallback.stall,
+          weight: Number(found.raw.berat_badan) || fallback.weight,
+          yieldToday: Number(found.raw.rerata_produksi_harian) || fallback.yieldToday,
+          bcs: Number(found.raw.skor_bcs) || fallback.bcs,
+          phase: found.raw.fase_laktasi || fallback.phase,
+          photo: found.photoUrl || found.image || fallback.photo,
+          dbId: found.dbId,
+        };
       });
     }
 
@@ -147,7 +151,7 @@ export default function PrediksiLaktasiPakan({ onNavigate, cowId = '07' }: Predi
 
   const activeCow = useMemo(() => {
     const clean = activeCowTag.replace('#', '').trim();
-    return cowList.find((c) => c.tag === clean) || cowList[1];
+    return cowList.find((c) => c.tag === clean || c.name.toLowerCase() === clean.toLowerCase()) || cowList[0];
   }, [activeCowTag, cowList]);
 
   // Synchronize when incoming cowId prop changes
@@ -275,6 +279,18 @@ export default function PrediksiLaktasiPakan({ onNavigate, cowId = '07' }: Predi
     setTimeout(() => setShowToast(false), 3500);
   };
 
+  if (cowsLoading) {
+    return (
+      <div className="min-h-screen bg-[#f9f9ff] p-6 sm:p-10 animate-pulse">
+        <div className="max-w-[1440px] mx-auto space-y-5">
+          <div className="h-16 rounded-2xl bg-white border border-slate-100" />
+          <div className="h-24 rounded-2xl bg-white border border-slate-100" />
+          <div className="h-72 rounded-2xl bg-white border border-slate-100" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#f9f9ff] font-sans text-[#111c2d] min-h-screen antialiased flex flex-col lg:flex-row">
       {/* DESKTOP SIDEBAR */}
@@ -360,7 +376,7 @@ export default function PrediksiLaktasiPakan({ onNavigate, cowId = '07' }: Predi
                         {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#8df5e4] animate-ping"></span>}
                       </div>
                       <span className={`text-[10px] truncate ${isSelected ? 'text-white/80' : 'text-[#717a6d]'}`}>
-                        {cow.weight} kg • H-{cow.dim} ({cow.yieldToday} L)
+                        {cow.stall} • {cow.weight} kg • H-{cow.dim} ({cow.yieldToday} L)
                       </span>
                     </div>
                   </button>
@@ -388,7 +404,7 @@ export default function PrediksiLaktasiPakan({ onNavigate, cowId = '07' }: Predi
               <div className="flex flex-col min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[20px] sm:text-[22px] text-[#111c2d] font-extrabold tracking-tight">
-                    Sapi #{activeCow.tag} — {activeCow.name}
+                    Profil Prediksi: {activeCow.name} (Sapi #{activeCow.tag})
                   </span>
                   <span className="bg-[#dee8ff] text-[#006b5f] text-[11px] px-2.5 py-0.5 rounded-full font-bold">
                     {activeCow.breed}

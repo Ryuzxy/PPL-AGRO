@@ -4,6 +4,7 @@ import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Nav
 
 interface KatalogKawananProps {
   onNavigate?: (screen: ScreenType, cowId?: string) => void;
+  userName?: string;
 }
 
 interface CowRecord {
@@ -33,7 +34,8 @@ interface CowRecord {
 import { useCows } from '../hooks/useSupabaseData';
 import { isFarmerSession } from '../auth';
 
-export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
+export default function KatalogKawanan({ onNavigate, userName = 'Pengguna' }: KatalogKawananProps) {
+  const displayName = userName.split('@')[0] || 'Pengguna';
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<'Semua' | 'Laktasi' | 'Bunting' | 'Kering' | 'Karantina' | 'Arsip'>('Semua');
@@ -185,11 +187,11 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
             <div className="flex items-center gap-2">
               <img 
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" 
-                alt="Pak Hafid"
+                alt={displayName}
                 className="w-8 h-8 rounded-full object-cover border border-slate-200"
               />
               <div className="hidden sm:flex flex-col text-left">
-                <span className="text-[12px] font-bold text-[#111c2d] leading-tight">Pak Hafid</span>
+                <span className="text-[12px] font-bold text-[#111c2d] leading-tight">{displayName}</span>
                 <span className="text-[11px] text-[#41493e] leading-tight">Kepala Peternakan</span>
               </div>
             </div>
@@ -529,7 +531,7 @@ export default function KatalogKawanan({ onNavigate }: KatalogKawananProps) {
                             className="px-2.5 py-1 rounded-full bg-[#8df5e4] hover:bg-[#70d8c8] text-[#00201c] text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
                             title={`Buka Profil Sapi ${cow.name} (${cow.id})`}
                           >
-                            <span className="material-symbols-outlined text-[13px]">badge</span> Profil
+                            <span className="material-symbols-outlined text-[13px]">badge</span> Profil Sapi
                           </button>
 
                           <button 
