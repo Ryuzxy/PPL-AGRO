@@ -8,12 +8,12 @@ export default defineConfig({
     react(),
     basicSsl({
       name: 'mowtitis-local',
-      domains: ['localhost', 'mowtitis.localhost', '192.168.1.6'],
+      domains: ['localhost', 'mowtitis.localhost'],
     }),
   ],
   server: {
-    host: '0.0.0.0',
+    host: '127.0.0.1',
     port: 5173,
-    allowedHosts: ['mowtitis.localhost', '192.168.1.6'],
+    allowedHosts: ['mowtitis.localhost'],
   },
 })

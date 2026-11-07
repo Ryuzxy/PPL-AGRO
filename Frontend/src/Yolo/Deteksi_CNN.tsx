@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { aiApi } from '../lib/aiApi';
 import { supabase } from '../lib/supabase';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
@@ -9,6 +9,9 @@ interface DeteksiCNNProps {
   cowId?: string;
   userName?: string;
 }
+
+let cameraLease = 0;
+let sharedCameraStream: MediaStream | null = null;
 
 const AVAILABLE_COWS = [
   { id: '04', name: 'Mawar', rfid: 'RF-004', dim: 110, breed: 'Friesian Holstein Murni', status: 'Bebas Mastitis / Sehat Prima', yield: '22.4 L', photo: 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&w=400&q=80', dbId: 1 },
@@ -28,9 +31,25 @@ export default function DeteksiCNN({ onNavigate, cowId = '07', userName = 'Pengg
   const [savedToCloud, setSavedToCloud] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { cows } = useCows();
+  const { cows, loading: cowsLoading } = useCows();
+  const orderedCows = useMemo(() => {
+    if (cows.length === 0) return AVAILABLE_COWS;
+    return [...cows]
+      .sort((a, b) => a.dbId - b.dbId)
+      .map((cow) => {
+        const fallback = AVAILABLE_COWS.find((item) => item.name.toLowerCase() === cow.name.toLowerCase()) || AVAILABLE_COWS[0];
+        return {
+          ...fallback,
+          id: cow.number.replace('#', ''),
+          name: cow.name,
+          dbId: cow.dbId,
+          photo: cow.photoUrl || fallback.photo,
+        };
+      });
+  }, [cows]);
 
   // Selected Cattle info
+  
   const [selectedCow, setSelectedCow] = useState(() => {
     const clean = cowId.replace('#', '').trim();
     return AVAILABLE_COWS.find((c) => c.id === clean) || AVAILABLE_COWS[1];
@@ -80,6 +99,8 @@ export default function DeteksiCNN({ onNavigate, cowId = '07', userName = 'Pengg
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const processingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const cameraRequestRef = useRef(0);
+  const ownedCameraLeaseRef = useRef(0);
   const boxElementRef = useRef<HTMLDivElement | null>(null);
   const telemetryRef = useRef<HTMLSpanElement | null>(null);
   const teatLdRef = useRef<HTMLDivElement | null>(null);
@@ -137,10 +158,21 @@ export default function DeteksiCNN({ onNavigate, cowId = '07', userName = 'Pengg
 
   // 1. Initialize Single Unified Camera
   const startCamera = useCallback(async () => {
+    const requestId = ++cameraRequestRef.current;
+    const lease = ++cameraLease;
+    ownedCameraLeaseRef.current = lease;
     try {
       setCameraError(null);
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      if (sharedCameraStream?.active && videoRef.current) {
+        mediaStreamRef.current = sharedCameraStream;
+        videoRef.current.srcObject = sharedCameraStream;
+        await videoRef.current.play().catch(() => undefined);
+        if (lease === cameraLease && requestId === cameraRequestRef.current) setCameraActive(true);
+        return;
+      }
+      if (sharedCameraStream) {
+        sharedCameraStream.getTracks().forEach((track) => track.stop());
+        sharedCameraStream = null;
       }
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -162,16 +194,19 @@ export default function DeteksiCNN({ onNavigate, cowId = '07', userName = 'Pengg
         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
 
-      mediaStreamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().catch((err) => console.warn('Video play interrupted:', err));
-        };
-        videoRef.current.play().catch((err) => console.warn('Video play interrupted:', err));
+      if (lease !== cameraLease || requestId !== cameraRequestRef.current || !videoRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
       }
-      setCameraActive(true);
+
+      sharedCameraStream = stream;
+      mediaStreamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      videoRef.current.onloadedmetadata = () => {
+        videoRef.current?.play().catch((err) => console.warn('Video play interrupted:', err));
+      };
+      await videoRef.current.play().catch((err) => console.warn('Video play interrupted:', err));
+      if (requestId === cameraRequestRef.current) setCameraActive(true);
     } catch (err: any) {
       console.warn('Gagal mengakses kamera:', err);
       setCameraActive(false);
@@ -186,10 +221,22 @@ export default function DeteksiCNN({ onNavigate, cowId = '07', userName = 'Pengg
   }, []);
 
   const stopCamera = useCallback(() => {
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
+    cameraRequestRef.current += 1;
+    const stoppingStream = mediaStreamRef.current;
+    if (stoppingStream && stoppingStream === sharedCameraStream && ownedCameraLeaseRef.current === cameraLease) {
+      stoppingStream.getTracks().forEach((track) => track.stop());
+      sharedCameraStream = null;
+    } else if (stoppingStream && stoppingStream !== sharedCameraStream) {
+      stoppingStream.getTracks().forEach((track) => track.stop());
     }
+    mediaStreamRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.srcObject = null;
+      videoRef.current.onloadedmetadata = null;
+    }
+    trackerRef.current.isDetecting = false;
+    trackerRef.current.prevFrameData = null;
     setCameraActive(false);
   }, []);
 
@@ -468,7 +515,9 @@ export default function DeteksiCNN({ onNavigate, cowId = '07', userName = 'Pengg
 
     return () => {
       isMounted = false;
+      trackerRef.current.isDetecting = false;
       cancelAnimationFrame(trackerRef.current.animId);
+      trackerRef.current.animId = 0;
       stopCamera();
     };
   }, [startCamera, stopCamera]);
@@ -631,6 +680,21 @@ export default function DeteksiCNN({ onNavigate, cowId = '07', userName = 'Pengg
     }
   };
 
+  if (cowsLoading) {
+    return (
+      <div className="bg-[#f9f9ff] min-h-screen p-6 sm:p-10 animate-pulse">
+        <div className="max-w-[1440px] mx-auto space-y-5">
+          <div className="skeleton h-16 rounded-2xl" />
+          <div className="skeleton h-24 rounded-2xl" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="skeleton h-[520px] rounded-2xl" />
+            <div className="skeleton h-[520px] rounded-2xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#f9f9ff] font-['Plus_Jakarta_Sans',sans-serif] text-[#111c2d] min-h-screen antialiased flex flex-col lg:flex-row">
       {/* SIDEBAR NAVIGATION FOR DESKTOP */}
@@ -758,7 +822,7 @@ export default function DeteksiCNN({ onNavigate, cowId = '07', userName = 'Pengg
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#717a6d] shrink-0 mr-1 flex items-center gap-1">
                 <span className="material-symbols-outlined text-[15px] text-[#006b5f]">cruelty_free</span> Sapi Target:
               </span>
-              {AVAILABLE_COWS.map((cow) => {
+              {orderedCows.map((cow) => {
                 const isSelected = selectedCow.id === cow.id;
                 return (
                   <button

@@ -365,9 +365,8 @@ export default function PilihSapiDeteksiCNN({ onNavigate }: PilihSapiDeteksiCNNP
           ))}
 
           {cowsLoading ? (
-            <div className="bg-white rounded-2xl p-8 text-center border border-[#dee8ff] flex flex-col items-center justify-center gap-2">
-              <span className="w-6 h-6 border-2 border-[#1b5e20] border-t-transparent rounded-full animate-spin"></span>
-              <p className="text-xs font-bold text-[#111c2d]">Memuat data sapi dari Supabase...</p>
+            <div className="bg-white rounded-2xl p-2 border border-[#dee8ff]">
+              {[1, 2, 3, 4, 5, 6].map((row) => <div key={row} className="skeleton data-skeleton-row" />)}
             </div>
           ) : filteredCows.length === 0 ? (
             <div className="bg-white rounded-2xl p-6 text-center border border-dashed border-[#dee8ff]">

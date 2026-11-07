@@ -493,9 +493,8 @@ export default function DashboardKas({ onNavigate, userName = 'Pengguna' }: Dash
                     <tbody className="divide-y divide-slate-100 text-[13px]">
                       {loading ? (
                         <tr>
-                          <td colSpan={7} className="py-8 text-center text-[#717a6d]">
-                            <span className="material-symbols-outlined text-[28px] animate-spin text-[#006b5f]">progress_activity</span>
-                            <p className="text-xs mt-2 font-semibold">Memuat catatan kas dari Supabase...</p>
+                          <td colSpan={7} className="py-2">
+                            {[1, 2, 3, 4].map((row) => <div key={row} className="skeleton data-skeleton-row" />)}
                           </td>
                         </tr>
                       ) : filteredTransactions.length === 0 ? (

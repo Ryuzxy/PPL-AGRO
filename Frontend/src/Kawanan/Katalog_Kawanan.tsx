@@ -420,9 +420,8 @@ export default function KatalogKawanan({ onNavigate, userName = 'Pengguna' }: Ka
                 <tbody className="divide-y divide-slate-100 text-[13px]">
                   {loading ? (
                     <tr>
-                      <td colSpan={11} className="py-12 text-center text-[#717a6d]">
-                        <span className="material-symbols-outlined text-[32px] animate-spin text-[#006b5f]">progress_activity</span>
-                        <p className="text-xs mt-2 font-semibold">Memuat kawanan sapi dari Supabase...</p>
+                      <td colSpan={11} className="py-2">
+                        {[1, 2, 3, 4, 5].map((row) => <div key={row} className="skeleton data-skeleton-row" />)}
                       </td>
                     </tr>
                   ) : filteredCattle.length === 0 ? (

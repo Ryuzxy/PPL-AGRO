@@ -35,10 +35,14 @@ export default function ProfilSapiDetail({
 
   if (loading && !selectedCow) {
     return (
-      <div className="bg-[#f9f9ff] min-h-screen flex items-center justify-center font-sans text-[#111c2d]">
-        <div className="flex flex-col items-center gap-3">
-          <span className="material-symbols-outlined text-[36px] animate-spin text-[#006b5f]">progress_activity</span>
-          <p className="text-sm font-bold text-[#717a6d]">Memuat profil sapi dari Supabase...</p>
+      <div className="bg-[#f9f9ff] min-h-screen p-6 sm:p-10 animate-pulse">
+        <div className="max-w-5xl mx-auto space-y-5">
+          <div className="skeleton h-16 rounded-2xl" />
+          <div className="skeleton h-28 rounded-2xl" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="skeleton h-72 rounded-3xl" />
+            <div className="skeleton h-72 rounded-3xl" />
+          </div>
         </div>
       </div>
     );

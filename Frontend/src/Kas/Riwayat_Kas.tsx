@@ -346,9 +346,8 @@ export default function RiwayatKas({ onNavigate }: RiwayatKasProps) {
           {/* Dynamic Transactions List */}
           <div className="space-y-2 pt-1">
             {loading ? (
-              <div className="bg-white rounded-2xl p-6 text-center text-[#717a6d] border border-[#dee8ff]">
-                <span className="material-symbols-outlined text-[28px] animate-spin text-[#006b5f]">progress_activity</span>
-                <p className="text-xs mt-2 font-semibold">Memuat catatan kas dari Supabase...</p>
+              <div className="bg-white rounded-2xl p-2 border border-[#dee8ff]">
+                {[1, 2, 3, 4].map((row) => <div key={row} className="skeleton data-skeleton-row" />)}
               </div>
             ) : filteredTrx.length === 0 ? (
               <div className="bg-white rounded-2xl p-6 text-center text-[#717a6d] border border-[#dee8ff]">

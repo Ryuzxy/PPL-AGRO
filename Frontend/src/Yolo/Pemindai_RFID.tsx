@@ -9,7 +9,7 @@ interface PemindaiRFIDProps {
 export default function PemindaiRFID({ onNavigate }: PemindaiRFIDProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-  const { cows } = useCows();
+  const { cows, loading: cowsLoading } = useCows();
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -118,7 +118,11 @@ export default function PemindaiRFID({ onNavigate }: PemindaiRFIDProps) {
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            {cows.length > 0 ? (
+            {cowsLoading ? (
+              <div className="col-span-2 bg-white rounded-2xl p-2 border border-[#dee8ff]">
+                {[1, 2, 3, 4].map((row) => <div key={row} className="skeleton data-skeleton-row" />)}
+              </div>
+            ) : cows.length > 0 ? (
               cows.slice(0, 6).map((c) => (
                 <button
                   key={c.id}
@@ -139,8 +143,8 @@ export default function PemindaiRFID({ onNavigate }: PemindaiRFIDProps) {
                 </button>
               ))
             ) : (
-              <div className="col-span-2 text-center py-4 text-xs text-[#717a6d]">
-                Memuat daftar sapi dari Supabase...
+              <div className="col-span-2 bg-white rounded-2xl p-2 border border-[#dee8ff]">
+                {[1, 2, 3, 4].map((row) => <div key={row} className="skeleton data-skeleton-row" />)}
               </div>
             )}
           </div>

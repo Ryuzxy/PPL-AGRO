@@ -127,7 +127,27 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (checkingSession) return <div className="login-loading">Memuat sesi...</div>;
+  if (checkingSession) {
+    return (
+      <main className="session-skeleton" aria-label="Memuat sesi">
+        <section className="session-skeleton-card">
+          <div className="session-skeleton-brand">
+            <span className="skeleton session-skeleton-logo" />
+            <span className="skeleton session-skeleton-brand-name" />
+          </div>
+          <span className="skeleton session-skeleton-avatar" />
+          <span className="skeleton session-skeleton-eyebrow" />
+          <span className="skeleton session-skeleton-title" />
+          <span className="skeleton session-skeleton-subtitle" />
+          <div className="session-skeleton-fields">
+            <span className="skeleton session-skeleton-field" />
+            <span className="skeleton session-skeleton-field" />
+          </div>
+          <span className="skeleton session-skeleton-action" />
+        </section>
+      </main>
+    );
+  }
   if (!user) return <Login onAuthenticated={handleAuthenticated} />;
   if (showProfile) return <ProfileLanding user={user} onContinue={() => setShowProfile(false)} onSignedOut={handleSignedOut} />;
 
