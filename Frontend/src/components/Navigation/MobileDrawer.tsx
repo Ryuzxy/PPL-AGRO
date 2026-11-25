@@ -20,6 +20,9 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 }) => {
   const weatherHook = useWeather();
   const active = activeScreen || currentScreen || '';
+  return null;
+
+  /* Legacy mobile drawer retained for desktop navigation compatibility. */
   if (!isOpen) return null;
 
   const handleNav = (screen: string) => {
@@ -28,13 +31,15 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   };
 
   const mainModules = [
-    { id: 'dashboard', label: 'Beranda Sistem', icon: 'dashboard', badge: 'Utama' },
+    ...(!isFarmerSession() ? [{ id: 'dashboard', label: 'Beranda Sistem', icon: 'dashboard', badge: 'Utama' }] : []),
     { id: 'deteksi', label: 'Cek Ambing', icon: 'photo_camera', badge: 'Kamera AI' },
     { id: 'prediksi', label: 'Perkiraan Susu & Pakan', icon: 'trending_up', badge: 'Perkiraan' },
     { id: 'simulasi_whatif', label: 'Hitung Campuran Pakan', icon: 'calculate', badge: 'Pakan' },
     { id: 'katalog', label: 'Daftar Semua Sapi', icon: 'pets', badge: 'Semua Sapi' },
-    { id: 'kas', label: 'Catatan Uang (Kas)', icon: 'account_balance_wallet', badge: 'Keuangan' },
-    { id: 'riwayat_kas', label: 'Catatan Keluar Masuk Uang', icon: 'receipt_long', badge: 'Riwayat' },
+    ...(!isFarmerSession() ? [
+      { id: 'kas', label: 'Catatan Uang (Kas)', icon: 'account_balance_wallet', badge: 'Keuangan' },
+      { id: 'riwayat_kas', label: 'Catatan Keluar Masuk Uang', icon: 'receipt_long', badge: 'Riwayat' },
+    ] : []),
   ];
 
   const clinicalModules = [

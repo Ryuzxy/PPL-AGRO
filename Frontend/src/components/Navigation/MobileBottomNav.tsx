@@ -11,47 +11,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 }) => {
   const navItems = [
     {
-      id: 'dashboard',
-      label: 'Beranda',
-      icon: 'dashboard',
-      activeScreens: ['dashboard', 'dashboard_kandang_mowtitis', 'dashboard_mobile'],
+      id: 'deteksi', label: 'Cek Ambing', icon: 'photo_camera',
+      activeScreens: ['deteksi', 'pilih_sapi_deteksi_cnn', 'deteksi_mastitis_cnn_inspeksi', 'hasil_deteksi_mastitis', 'pemindai_rfid', 'telemetri_rutin'],
     },
     {
-      id: 'deteksi',
-      label: 'Cek Ambing',
-      icon: 'photo_camera',
-      activeScreens: [
-        'deteksi',
-        'pilih_sapi_deteksi_cnn',
-        'deteksi_mastitis_cnn_inspeksi',
-        'hasil_deteksi_mastitis',
-        'pemindai_rfid',
-        'telemetri_rutin',
-      ],
+      id: 'prediksi', label: 'Susu & Pakan', icon: 'trending_up', activeScreens: ['prediksi', 'simulasi_whatif'],
     },
     {
-      id: 'prediksi',
-      label: 'Susu & Pakan',
-      icon: 'trending_up',
-      activeScreens: ['prediksi', 'simulasi_whatif'],
-    },
-    {
-      id: 'katalog',
-      label: 'Data Sapi',
-      icon: 'pets',
-      activeScreens: ['katalog', 'ringkasan_produksi_kawanan', 'profil_sapi'],
-    },
-    {
-      id: 'kas',
-      label: 'Uang Kas',
-      icon: 'account_balance_wallet',
-      activeScreens: [
-        'kas',
-        'buku_kas_mikro_mowtitis',
-        'riwayat_kas',
-        'form_input_kas',
-        'kirim_laporan_wa',
-      ],
+      id: 'katalog', label: 'Data Sapi', icon: 'pets', activeScreens: ['katalog', 'ringkasan_produksi_kawanan', 'profil_sapi'],
     },
   ];
 

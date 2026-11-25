@@ -10,8 +10,7 @@ export interface AppUser {
 }
 
 export const FARMER_SCREENS = new Set([
-  'dashboard',
-  'dashboard_kandang_mowtitis',
+
   // Udder checks and milking operations.
   'pemerahan',
   'deteksi',
@@ -28,14 +27,6 @@ export const FARMER_SCREENS = new Set([
   'katalog',
   'profil_sapi',
   'riwayat_sapi',
-  // Cash: view and add only.
-  'kas',
-  'buku_kas_mikro_mowtitis',
-  'riwayat_kas',
-  'form_input_kas',
-  'form_input_pengeluaran',
-  'input_pengeluaran_medis',
-  'pengeluaran_medis',
 ]);
 
 export function canAccessScreen(role: UserRole, screen: string) {

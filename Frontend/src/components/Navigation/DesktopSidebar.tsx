@@ -1,7 +1,7 @@
 import React from 'react';
 import { useWeather } from '../../hooks/useWeather';
 import { WindyWeatherModal, WindyWeatherWidget } from '../Weather';
-import { signOutApp } from '../../auth';
+import { isFarmerSession, signOutApp } from '../../auth';
 
 interface DesktopSidebarProps {
   currentScreen: string;
@@ -48,7 +48,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
         {/* Navigation Links */}
         <nav className="flex flex-col gap-1 px-4">
-          <button
+          {!isFarmerSession() && <button
             onClick={() => onNavigate?.('dashboard')}
             className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all text-left ${
               isScreenActive('dashboard', ['dashboard_kandang_mowtitis', 'dashboard_mobile'])
@@ -58,7 +58,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           >
             <span className="material-symbols-outlined text-[20px]">dashboard</span>
             <span>Beranda</span>
-          </button>
+          </button>}
 
           <button
             onClick={() => onNavigate?.('deteksi')}
@@ -114,7 +114,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             <span>Daftar Semua Sapi</span>
           </button>
 
-          <button
+          {!isFarmerSession() && <button
             onClick={() => onNavigate?.('kas')}
             className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all text-left ${
               isScreenActive('kas', ['buku_kas_mikro_mowtitis', 'riwayat_kas', 'form_input_kas', 'kirim_laporan_wa'])
@@ -124,7 +124,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           >
             <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
             <span>Catatan Uang (Kas)</span>
-          </button>
+          </button>}
         </nav>
 
 

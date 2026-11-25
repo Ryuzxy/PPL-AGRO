@@ -99,7 +99,13 @@ export default function App() {
   });
 
   useEffect(() => {
-    getCurrentAppUser().then(setUser).finally(() => setCheckingSession(false));
+    getCurrentAppUser().then((appUser) => {
+      if (appUser?.role === 'farmer' && !canAccessScreen(appUser.role, currentScreen)) {
+        setCurrentScreen('pemerahan');
+        sessionStorage.setItem('mowtitis-screen', 'pemerahan');
+      }
+      setUser(appUser);
+    }).finally(() => setCheckingSession(false));
     const handleGlobalSignOut = () => handleSignedOut();
     window.addEventListener('mowtitis:signed-out', handleGlobalSignOut);
     return () => window.removeEventListener('mowtitis:signed-out', handleGlobalSignOut);
@@ -112,7 +118,9 @@ export default function App() {
   const handleAuthenticated = (authenticatedUser: AppUser) => {
     setUser(authenticatedUser);
     setShowProfile(true);
-    setCurrentScreen('dashboard');
+    const firstScreen = authenticatedUser.role === 'farmer' ? 'pemerahan' : 'dashboard';
+    setCurrentScreen(firstScreen);
+    sessionStorage.setItem('mowtitis-screen', firstScreen);
   };
 
   const handleSignedOut = () => {
