@@ -1,4 +1,6 @@
 import { useState } from 'react';
+
+const currentDateLabel = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 import type { ScreenType } from '../App.tsx';
 import { useCashflow, type CashTransaction } from '../hooks/useSupabaseData';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
@@ -104,7 +106,7 @@ export default function BukuKasMikroMowtitis({ onNavigate }: BukuKasMikroMowtiti
                     </span>
                   </div>
                   <p className="text-xs text-[#005048] mt-1 leading-relaxed">
-                    15 Mar 2025 • 16:30 WIB. Hasil perahan sore <strong>Sapi #07 Cantik</strong> (14.50 L • Rp 101.500) otomatis dibukukan ke Kas Penjualan Susu BMC-01 Rembangan.
+                    {currentDateLabel} • 16:30 WIB. Hasil perahan sore <strong>Sapi #07 Cantik</strong> (14.50 L • Rp 101.500) otomatis dibukukan ke Kas Penjualan Susu BMC-01 Rembangan.
                   </p>
                 </div>
                 <button 

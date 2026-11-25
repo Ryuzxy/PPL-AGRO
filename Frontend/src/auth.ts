@@ -12,7 +12,8 @@ export interface AppUser {
 export const FARMER_SCREENS = new Set([
   'dashboard',
   'dashboard_kandang_mowtitis',
-  // Udder checks only.
+  // Udder checks and milking operations.
+  'pemerahan',
   'deteksi',
   'pilih_sapi_deteksi_cnn',
   'deteksi_mastitis_cnn_inspeksi',
@@ -76,6 +77,12 @@ export async function recordActivity(userId: string, action: string, metadata: {
     metadata,
   });
   if (error) throw error;
+}
+
+export async function signOutApp() {
+  await supabase.auth.signOut();
+  setActiveRole(null);
+  window.dispatchEvent(new Event('mowtitis:signed-out'));
 }
 
 export async function signIn(email: string, password: string, selectedRole: UserRole) {

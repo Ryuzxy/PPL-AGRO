@@ -11,6 +11,11 @@ services:
 
   backend:
     build: ./Backend
+    environment:
+      APP_ENV: production
+      SUPABASE_URL: ${VITE_SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://mowtitis.ryuxy.my.id}
     restart: unless-stopped
 
   caddy:

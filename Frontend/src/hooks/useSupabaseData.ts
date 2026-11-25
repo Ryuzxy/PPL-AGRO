@@ -194,6 +194,28 @@ export function useCows() {
     return data;
   };
 
+  const updateCow = async (id: number, cowData: Partial<{
+    nama: string;
+    eartag: string;
+    ras: string;
+    fase_laktasi: string;
+    lokasi_kandang: string;
+    status_kesehatan: string;
+    berat_badan: number;
+    skor_bcs: number;
+    rerata_produksi_harian: number;
+    catatan: string;
+    foto_profil_url: string;
+  }>) => {
+    const { error } = await supabase
+      .from('sapi')
+      .update({ ...cowData, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+    await fetchCows();
+  };
+
   const deleteCow = async (id: number) => {
     // Soft delete: set is_deleted to true
     const { error } = await supabase
@@ -235,7 +257,7 @@ export function useCows() {
     };
   }, [fetchCows]);
 
-  return { cows, archivedCows, loading, error, refetch: fetchCows, addCow, deleteCow, restoreCow };
+  return { cows, archivedCows, loading, error, refetch: fetchCows, addCow, updateCow, deleteCow, restoreCow };
 }
 
 // 2. Hook for Cash Flow

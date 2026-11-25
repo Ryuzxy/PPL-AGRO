@@ -1,9 +1,15 @@
 import os
 import json
+import logging
+import hashlib
+import time
+from collections import defaultdict, deque
 from typing import Optional
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Query
+import requests
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Query, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from schemas import (
     MilkSensorInput,
@@ -17,6 +23,54 @@ from schemas import (
 )
 from predictor import predictor
 
+logger = logging.getLogger(__name__)
+MAX_IMAGE_BYTES = 8 * 1024 * 1024
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "").split(",") if origin.strip()]
+
+
+rate_windows: dict[str, deque[float]] = defaultdict(deque)
+
+
+def require_user(request: Request) -> dict:
+    authorization = request.headers.get("authorization", "")
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    token = authorization.removeprefix("Bearer ").strip()
+    if not token or not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise HTTPException(status_code=401, detail="Authentication unavailable")
+    try:
+        response = requests.get(
+            f"{SUPABASE_URL}/auth/v1/user",
+            headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_ANON_KEY},
+            timeout=5,
+        )
+    except requests.RequestException:
+        raise HTTPException(status_code=503, detail="Authentication service unavailable")
+    if response.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid authentication")
+    user = response.json()
+    key = user.get("id") or hashlib.sha256(token.encode()).hexdigest()
+    now = time.monotonic()
+    window = rate_windows[key]
+    while window and now - window[0] > 60:
+        window.popleft()
+    if len(window) >= 60:
+        raise HTTPException(status_code=429, detail="Terlalu banyak permintaan.")
+    window.append(now)
+    return user
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(self), microphone=()"
+        return response
+
 # ==========================================
 # FastAPI Application Initialization
 # ==========================================
@@ -24,17 +78,19 @@ app = FastAPI(
     title="MowTitis Dairy AI REST API",
     description="Backend REST API untuk Pipeline Inferensi CNN MobileNetV2 (Deteksi Mastitis Ambing) dan XGBoost (Sensor Susu & Siklus Laktasi)",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url="/docs" if os.getenv("APP_ENV", "production") != "production" else None,
+    redoc_url="/redoc" if os.getenv("APP_ENV", "production") != "production" else None,
+    openapi_url="/openapi.json" if os.getenv("APP_ENV", "production") != "production" else None,
 )
+app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS Middleware for Frontend React connection
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # ==========================================
@@ -85,7 +141,7 @@ def list_models():
 # 1. Milk Sensor Prediction (XGBoost)
 # ==========================================
 @app.post("/api/predict/milk", response_model=MilkPredictionResponse, tags=["Inferensi AI"])
-def predict_milk_telemetry(payload: MilkSensorInput):
+def predict_milk_telemetry(payload: MilkSensorInput, _: dict = Depends(require_user)):
     """
     Menerima parameter fisikokimia susu hasil perahan (suhu, pH, konduktivitas, SCC, yield, clotting)
     dan mengembalikan hasil inferensi XGBoost untuk deteksi dini mastitis.
@@ -101,31 +157,38 @@ def predict_milk_telemetry(payload: MilkSensorInput):
             clotting=payload.clotting
         )
         return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gagal memproses inferensi susu: {str(e)}")
+    except Exception:
+        logger.exception("Milk inference failed")
+        raise HTTPException(status_code=500, detail="Gagal memproses inferensi susu.")
 
 # ==========================================
 # 2. Udder Visual Image Prediction (CNN MobileNetV2)
 # ==========================================
 @app.post("/api/predict/image", response_model=ImagePredictionResponse, tags=["Inferensi AI"])
 async def predict_udder_image(
-    file: UploadFile = File(..., description="Foto ambing sapi (JPG/PNG)")
+    file: UploadFile = File(..., description="Foto ambing sapi (JPG/PNG)"),
+    _: dict = Depends(require_user),
 ):
     """
     Menerima upload foto inspeksi ambing/puting sapi dan mengklasifikasikan
     status kesehatan menggunakan model CNN MobileNetV2.
     """
-    if not file.content_type.startswith("image/"):
+    if file.content_type not in {"image/jpeg", "image/png", "image/webp"}:
         raise HTTPException(status_code=400, detail="File yang diunggah harus berupa gambar (JPG, PNG, WebP).")
 
     try:
-        contents = await file.read()
+        contents = await file.read(MAX_IMAGE_BYTES + 1)
+        if len(contents) > MAX_IMAGE_BYTES:
+            raise HTTPException(status_code=413, detail="Ukuran gambar maksimal 8 MB.")
         res = predictor.predict_image(contents)
         if "error" in res:
             raise HTTPException(status_code=422, detail=res["error"])
         return res
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gagal memproses analisis citra: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Image inference failed")
+        raise HTTPException(status_code=500, detail="Gagal memproses analisis citra.")
 
 # ==========================================
 # 3. Multimodal Diagnostic Fusion (Susu + Citra)
@@ -133,7 +196,8 @@ async def predict_udder_image(
 @app.post("/api/predict/multimodal", response_model=MultimodalResponse, tags=["Inferensi AI"])
 async def predict_multimodal_diagnosis(
     milk_data_json: Optional[str] = Form(None, description="String JSON data fisikokimia susu"),
-    image_file: Optional[UploadFile] = File(None, description="Foto ambing sapi")
+    image_file: Optional[UploadFile] = File(None, description="Foto ambing sapi"),
+    _: dict = Depends(require_user),
 ):
     """
     Inferensi gabungan (Multimodal Fusion) yang mengintegrasikan parameter sensor susu (60% bobot)
@@ -148,7 +212,9 @@ async def predict_multimodal_diagnosis(
 
     image_bytes = None
     if image_file:
-        image_bytes = await image_file.read()
+        image_bytes = await image_file.read(MAX_IMAGE_BYTES + 1)
+        if len(image_bytes) > MAX_IMAGE_BYTES:
+            raise HTTPException(status_code=413, detail="Ukuran gambar maksimal 8 MB.")
 
     if not parsed_milk_data and not image_bytes:
         raise HTTPException(status_code=400, detail="Wajib menyertakan minimal salah satu: data susu atau foto ambing.")
@@ -161,14 +227,15 @@ async def predict_multimodal_diagnosis(
             "hasil_citra_ambing": diag.get("hasil_citra_ambing"),
             "analisis_kombinasi": diag["analisis_kombinasi"]
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gagal menjalankan diagnosis multimodal: {str(e)}")
+    except Exception:
+        logger.exception("Multimodal inference failed")
+        raise HTTPException(status_code=500, detail="Gagal menjalankan diagnosis multimodal.")
 
 # ==========================================
 # 4. Lactation Cycle Prediction
 # ==========================================
 @app.post("/api/predict/lactation", response_model=LactationPredictionResponse, tags=["Siklus Laktasi"])
-def predict_lactation_cycle(payload: LactationPredictionInput):
+def predict_lactation_cycle(payload: LactationPredictionInput, _: dict = Depends(require_user)):
     """
     Memproyeksikan kurva laktasi 305 hari, estimasi hari puncak (peak DIM),
     dan target produksi puncak berdasarkan bobot badan & fase laktasi.
@@ -183,14 +250,15 @@ def predict_lactation_cycle(payload: LactationPredictionInput):
             skor_bcs=payload.skor_bcs
         )
         return res
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gagal menghitung siklus laktasi: {str(e)}")
+    except Exception:
+        logger.exception("Lactation inference failed")
+        raise HTTPException(status_code=500, detail="Gagal menghitung siklus laktasi.")
 
 # ==========================================
 # 5. Feed Rations & IOFC Optimization
 # ==========================================
 @app.post("/api/feed/optimize", response_model=FeedOptimizationResponse, tags=["Optimasi Pakan"])
-def optimize_feed_rations(payload: FeedOptimizationInput):
+def optimize_feed_rations(payload: FeedOptimizationInput, _: dict = Depends(require_user)):
     """
     Menghitung rekomendasi takaran ransum harian berbasis least-cost formulation
     (rumput odot, indigofera, konsentrat, ampas tahu) serta estimasi marjin IOFC.
@@ -205,9 +273,10 @@ def optimize_feed_rations(payload: FeedOptimizationInput):
             harga_jual_susu_per_liter=payload.harga_jual_susu_per_liter
         )
         return res
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gagal mengoptimasi ransum pakan: {str(e)}")
+    except Exception:
+        logger.exception("Feed optimization failed")
+        raise HTTPException(status_code=500, detail="Gagal mengoptimasi ransum pakan.")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)

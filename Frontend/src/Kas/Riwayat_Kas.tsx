@@ -1,4 +1,6 @@
 import { useState } from 'react';
+
+const currentMonthLabel = new Date().toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
 import type { ScreenType } from '../App.tsx';
 import { useCashflow, type CashTransaction } from '../hooks/useSupabaseData';
 import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
@@ -145,7 +147,7 @@ export default function RiwayatKas({ onNavigate }: RiwayatKasProps) {
               className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-[#dee8ff] text-xs font-semibold text-[#111c2d] shadow-xs"
             >
               <span className="material-symbols-outlined text-[16px] text-[#006b5f]">calendar_today</span>
-              <span>Mar 2025</span>
+              <span>{currentMonthLabel}</span>
             </button>
           </div>
 

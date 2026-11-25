@@ -3,6 +3,7 @@ import type { ScreenType } from '../App.tsx';
 import { supabase } from '../lib/supabase';
 
 import { useCows } from '../hooks/useSupabaseData';
+import { DesktopSidebar, MobileBottomNav, MobileDrawer } from '../components/Navigation';
 
 interface SesiPemerahanSusuProps {
   onNavigate?: (screen: ScreenType) => void;
@@ -12,14 +13,18 @@ interface SesiPemerahanSusuProps {
 export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: SesiPemerahanSusuProps) {
   const [sessionTime, setSessionTime] = useState<'pagi' | 'sore'>('sore');
   const [selectedCowId, setSelectedCowId] = useState(defaultCowId);
-  const [seconds, setSeconds] = useState(258);
-  const [volume, setVolume] = useState(11.45);
-  const [flowRate, setFlowRate] = useState(2.3);
+  const [inputMode, setInputMode] = useState<'alat' | 'manual'>('alat');
+  const [manualVolume, setManualVolume] = useState('');
+  const [seconds, setSeconds] = useState(0);
+  const [volume, setVolume] = useState(0);
+  const [flowRate, setFlowRate] = useState(0);
+  const [isStarted, setIsStarted] = useState(false);
   const [temperature] = useState(38.4);
   const [conductivity] = useState(5.2);
   const [isFinished, setIsFinished] = useState(false);
   const [isPulsatorStopped, setIsPulsatorStopped] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { cows } = useCows();
 
@@ -48,7 +53,7 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
   };
 
   useEffect(() => {
-    if (isFinished || isPulsatorStopped) return;
+    if (!isStarted || isFinished || isPulsatorStopped) return;
     const interval = setInterval(() => {
       setSeconds((prev) => prev + 1);
       setVolume((prev) => +(prev + 0.02).toFixed(2));
@@ -56,7 +61,7 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
       setFlowRate(+(2.1 + Math.random() * 0.4).toFixed(1));
     }, 1000);
     return () => clearInterval(interval);
-  }, [isFinished, isPulsatorStopped]);
+  }, [isStarted, isFinished, isPulsatorStopped]);
 
   const formatTimer = (totalSeconds: number) => {
     const mins = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
@@ -73,8 +78,14 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
   };
 
   const handleFinish = async () => {
+    const recordedVolume = inputMode === 'manual' ? Number(manualVolume) : volume;
+    if (!Number.isFinite(recordedVolume) || recordedVolume <= 0) {
+      showToast('Masukkan jumlah susu lebih dari 0 liter.');
+      return;
+    }
+    setVolume(Number(recordedVolume.toFixed(2)));
     setIsFinished(true);
-    showToast(`Pemerahan Sapi #${currentCow.id} (${volume} L) selesai! Menyimpan data ke Supabase...`);
+    showToast(`Pemerahan Sapi #${currentCow.id} (${recordedVolume} L) selesai! Menyimpan data ke Supabase...`);
 
     const rawSapiId = (currentCow as any)?.rawId || (currentCow.id === '04' ? 1 : currentCow.id === '07' ? 2 : currentCow.id === '12' ? 3 : currentCow.id === '18' ? 4 : currentCow.id === '21' ? 5 : 6);
 
@@ -82,7 +93,7 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
       // 1. Simpan catatan hasil perah ke Supabase
       await supabase.from('histori_produksi_susu').insert({
         sapi_id: rawSapiId,
-        jumlah_liter: volume,
+        jumlah_liter: recordedVolume,
         sesi: sessionTime,
         suhu_susu: temperature,
         konduktivitas: conductivity,
@@ -93,13 +104,13 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
       await supabase.from('pemasukan').insert({
         sapi_id: rawSapiId,
         kategori: 'Penjualan Susu KUD',
-        jumlah: Math.round(volume * 7000),
-        volume_liter: volume,
+        jumlah: Math.round(recordedVolume * 7000),
+        volume_liter: recordedVolume,
         keterangan: `Setoran Susu ${sessionTime === 'pagi' ? 'Pagi' : 'Sore'} Sapi #${currentCow.id} (${currentCow.name})`,
         tanggal: new Date().toISOString().split('T')[0]
       });
 
-      showToast(`Data perah & kas setoran Rp ${Math.round(volume * 7000).toLocaleString('id-ID')} tersimpan di Supabase!`);
+      showToast(`Data perah & kas setoran Rp ${Math.round(recordedVolume * 7000).toLocaleString('id-ID')} tersimpan di Supabase!`);
     } catch (e) {
       console.warn('Logging to Supabase skipped:', e);
     }
@@ -110,7 +121,15 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
   };
 
   return (
-    <div className="bg-[#f9f9ff] font-['Plus_Jakarta_Sans',sans-serif] text-[#111c2d] min-h-screen flex flex-col antialiased">
+    <div className="bg-[#f9f9ff] font-['Plus_Jakarta_Sans',sans-serif] text-[#111c2d] min-h-screen flex flex-col lg:flex-row antialiased">
+      <DesktopSidebar currentScreen="pemerahan" onNavigate={onNavigate} />
+      <MobileDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        currentScreen="pemerahan"
+        onNavigate={onNavigate}
+      />
+      <div className="flex-1 lg:pl-72 w-full flex flex-col">
       {/* Toast Notification */}
       {toastMsg && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#263143] text-[#ecf1ff] px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2 text-sm z-50 animate-bounce">
@@ -120,15 +139,15 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
       )}
 
       {/* Header */}
-      <header className="fixed top-0 w-full z-40 bg-[#f9f9ff]/90 backdrop-blur-xl border-b border-[#dee8ff] px-4 py-3 shadow-xs">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+      <header className="sticky top-0 w-full z-30 bg-[#f9f9ff]/90 backdrop-blur-xl border-b border-[#dee8ff] px-4 py-3 shadow-xs">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <button
-              onClick={() => onNavigate?.('dashboard')}
-              className="w-10 h-10 rounded-full bg-white border border-[#dee8ff] flex items-center justify-center text-[#111c2d] hover:bg-[#f0f3ff] transition-transform active:scale-95 shadow-xs"
-              title="Kembali"
+              onClick={() => setDrawerOpen(true)}
+              className="lg:hidden w-10 h-10 rounded-full bg-white border border-[#dee8ff] flex items-center justify-center text-[#111c2d] hover:bg-[#f0f3ff] transition-transform active:scale-95 shadow-xs"
+              title="Buka menu"
             >
-              <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+              <span className="material-symbols-outlined text-[20px]">menu</span>
             </button>
             <div className="flex flex-col">
               <h1 className="text-base font-bold text-[#111c2d]">Sesi Pemerahan Susu</h1>
@@ -160,7 +179,7 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 pt-20 pb-32 flex flex-col gap-4">
+      <main className="flex-1 w-full max-w-4xl mx-auto px-4 pt-5 pb-28 flex flex-col gap-4">
         {/* Parlor Slot Quick Switcher */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           {parlorSlots.map((slot) => (
@@ -177,6 +196,39 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
               <span>#{slot.id} {slot.name}</span>
             </button>
           ))}
+        </div>
+
+        {/* Milking input mode */}
+        <div className="bg-white rounded-2xl p-4 border border-[#dee8ff] shadow-xs">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#717a6d]">Metode Pencatatan Susu</span>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <button
+              onClick={() => setInputMode('alat')}
+              className={`py-2.5 rounded-xl text-xs font-bold transition-all ${inputMode === 'alat' ? 'bg-[#1b5e20] text-white' : 'bg-[#f0f3ff] text-[#41493e]'}`}
+            >
+              Pakai Alat Pemerahan
+            </button>
+            <button
+              onClick={() => setInputMode('manual')}
+              className={`py-2.5 rounded-xl text-xs font-bold transition-all ${inputMode === 'manual' ? 'bg-[#1b5e20] text-white' : 'bg-[#f0f3ff] text-[#41493e]'}`}
+            >
+              Input Manual
+            </button>
+          </div>
+          {inputMode === 'manual' && (
+            <label className="block mt-3 text-xs font-semibold text-[#41493e]">
+              Jumlah susu hasil perahan (liter)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={manualVolume}
+                onChange={(event) => setManualVolume(event.target.value)}
+                placeholder="Contoh: 12.5"
+                className="mt-1 w-full rounded-xl border border-[#dee8ff] bg-[#f9f9ff] px-3 py-2.5 text-sm font-bold outline-none focus:border-[#1b5e20]"
+              />
+            </label>
+          )}
         </div>
 
         {/* Live Cow Info Card */}
@@ -199,9 +251,17 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
         {/* Central Telemetry Gauge */}
         <div className="bg-white rounded-3xl p-6 border border-[#dee8ff] shadow-sm text-center flex flex-col items-center">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#717a6d] mb-2">
-            <span className="w-2 h-2 rounded-full bg-[#ba1a1a] animate-ping"></span>
-            DURASI PERAHAN: {formatTimer(seconds)}
+            <span className={`w-2 h-2 rounded-full ${isStarted ? 'bg-[#ba1a1a] animate-ping' : 'bg-slate-300'}`}></span>
+            {isStarted ? 'PEMERAHAN BERLANGSUNG' : 'SIAP DIMULAI'} • DURASI: {formatTimer(seconds)}
           </div>
+          {!isStarted && (
+            <button
+              onClick={() => setIsStarted(true)}
+              className="mb-3 px-5 py-2.5 rounded-full bg-[#1b5e20] text-white text-xs font-bold shadow-sm hover:bg-[#00450d] active:scale-95 transition-all"
+            >
+              Mulai Pemerahan
+            </button>
+          )}
 
           {/* Volume Big Counter */}
           <div className="my-2">
@@ -210,7 +270,7 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
           </div>
 
           <span className="text-xs font-semibold text-[#006b5f] bg-[#8df5e4]/40 px-3 py-1 rounded-full mb-6">
-            Laju Aliran: {flowRate} L/menit • Tekanan Vakum Stabil
+            {isStarted ? `Laju Aliran: ${flowRate} L/menit • Tekanan Vakum Stabil` : 'Tekanan vakum belum aktif'}
           </span>
 
           {/* Inline Physicochemical Sensors */}
@@ -247,7 +307,7 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
 
           <button
             onClick={handleFinish}
-            disabled={isFinished}
+            disabled={!isStarted || isFinished}
             className="py-3.5 px-4 rounded-xl bg-[#1b5e20] hover:bg-[#00450d] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-98 disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-[18px]">check_circle</span>
@@ -255,6 +315,8 @@ export default function SesiPemerahanSusu({ onNavigate, defaultCowId = '18' }: S
           </button>
         </div>
       </main>
+      <MobileBottomNav activeScreen="pemerahan" onNavigate={onNavigate} />
+      </div>
     </div>
   );
 }

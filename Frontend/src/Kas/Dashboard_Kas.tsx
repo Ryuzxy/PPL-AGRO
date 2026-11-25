@@ -27,6 +27,10 @@ interface Transaction {
 
 export default function DashboardKas({ onNavigate, userName = 'Pengguna' }: DashboardKasProps) {
   const displayName = userName.split('@')[0] || 'Pengguna';
+  const now = new Date();
+  const todayLabel = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  const fullDateLabel = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  const monthLabel = now.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [period, setPeriod] = useState<'Bulan Ini' | 'Hari Ini' | '7 Hari'>('Bulan Ini');
   const [activeFilter, setActiveFilter] = useState<'all' | 'pemasukan' | 'pakan' | 'medis'>('all');
@@ -244,13 +248,13 @@ export default function DashboardKas({ onNavigate, userName = 'Pengguna' }: Dash
                   onClick={() => setPeriod('Bulan Ini')}
                   className={`px-3 py-1.5 rounded-full transition-all ${period === 'Bulan Ini' ? 'bg-white text-[#00450d] shadow-sm' : 'hover:text-[#111c2d]'}`}
                 >
-                  Bulan Ini (Mar 2025)
+                  Bulan Ini ({monthLabel})
                 </button>
                 <button 
                   onClick={() => setPeriod('Hari Ini')}
                   className={`px-3 py-1.5 rounded-full transition-all ${period === 'Hari Ini' ? 'bg-white text-[#00450d] shadow-sm' : 'hover:text-[#111c2d]'}`}
                 >
-                  Hari Ini (15 Mar)
+                  Hari Ini ({todayLabel})
                 </button>
                 <button 
                   onClick={() => setPeriod('7 Hari')}
@@ -381,7 +385,7 @@ export default function DashboardKas({ onNavigate, userName = 'Pengguna' }: Dash
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[#00450d] text-[22px]">stacked_bar_chart</span>
-                    <span className="text-[15px] text-[#111c2d] font-bold">Alokasi &amp; Tingkat Kesehatan Susu Harian (15 Mar 2025)</span>
+                    <span className="text-[15px] text-[#111c2d] font-bold">Alokasi &amp; Tingkat Kesehatan Susu Harian ({fullDateLabel})</span>
                   </div>
                   <span className="text-[11px] font-bold text-[#41493e] bg-[#f0f3ff] px-3 py-1 rounded-full border border-slate-200">
                     Total: 128.55 Liter

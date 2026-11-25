@@ -1,7 +1,7 @@
 import React from 'react';
 import { useWeather } from '../../hooks/useWeather';
 import { WindyWeatherModal, WindyWeatherWidget } from '../Weather';
-import { isFarmerSession } from '../../auth';
+import { isFarmerSession, signOutApp } from '../../auth';
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -44,7 +44,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     { id: 'rapid_test', label: 'Tes Cepat Susu (SCC)', icon: 'biotech' },
     { id: 'pemindai_rfid', label: 'Alat Pindai Sapi (RFID)', icon: 'contactless' },
     { id: 'unduh_kas', label: 'Cetak Laporan (PDF)', icon: 'file_download' },
-  ].filter((item) => !isFarmerSession() || item.id === 'pemindai_rfid');
+  ].filter((item) => !isFarmerSession() || item.id === 'pemindai_rfid' || item.id === 'pemerahan');
 
   return (
     <div className="lg:hidden fixed inset-0 z-50 flex">
@@ -164,7 +164,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             </span>
           </div>
           <button
-            onClick={() => handleNav('opening')}
+            onClick={() => void signOutApp()}
             className="w-full py-2 px-3 rounded-lg bg-white hover:bg-slate-100 text-[#ba1a1a] font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">logout</span>

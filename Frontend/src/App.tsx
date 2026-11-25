@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Login from './Login.tsx';
 import ProfileLanding from './ProfileLanding.tsx';
 import ErrorPage from './ErrorPage.tsx';
-import { canAccessScreen, getCurrentAppUser, recordActivity, setActiveRole, type AppUser } from './auth';
+import { canAccessScreen, getCurrentAppUser, recordActivity, setActiveRole, signOutApp, type AppUser } from './auth';
 
 // 1. Entry & Dashboards
 import Opening from './Opening.tsx';
@@ -85,15 +85,29 @@ export type ScreenType =
   | string;
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<ScreenType>('opening');
-  const [selectedCowId, setSelectedCowId] = useState<string>('mawar');
+  const [currentScreen, setCurrentScreen] = useState<ScreenType>(() => {
+    const saved = sessionStorage.getItem('mowtitis-screen');
+    return saved || 'opening';
+  });
+  const [selectedCowId, setSelectedCowId] = useState<string>(() => sessionStorage.getItem('mowtitis-cow-id') || 'mawar');
   const [user, setUser] = useState<AppUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [showProfile, setShowProfile] = useState(true);
+  const [showProfile, setShowProfile] = useState(() => !sessionStorage.getItem('mowtitis-screen'));
+  const [invalidPath] = useState(() => {
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    return path !== '/' && path !== '/index.html';
+  });
 
   useEffect(() => {
     getCurrentAppUser().then(setUser).finally(() => setCheckingSession(false));
+    const handleGlobalSignOut = () => handleSignedOut();
+    window.addEventListener('mowtitis:signed-out', handleGlobalSignOut);
+    return () => window.removeEventListener('mowtitis:signed-out', handleGlobalSignOut);
   }, []);
+
+  if (invalidPath) {
+    return <ErrorPage code={404} onHome={() => window.location.assign('/')} />;
+  }
 
   const handleAuthenticated = (authenticatedUser: AppUser) => {
     setUser(authenticatedUser);
@@ -103,6 +117,8 @@ export default function App() {
 
   const handleSignedOut = () => {
     setActiveRole(null);
+    sessionStorage.removeItem('mowtitis-screen');
+    sessionStorage.removeItem('mowtitis-cow-id');
     setUser(null);
     setShowProfile(false);
     setCurrentScreen('opening');
@@ -117,19 +133,23 @@ export default function App() {
       if (user) void recordActivity(user.id, 'access_denied', { screen });
       return;
     }
-    if (screen === 'prediksi' && !cowId) {
-      setSelectedCowId('mawar');
-    } else if (cowId) {
-      setSelectedCowId(cowId.replace('#', '').trim());
-    }
+    const nextCowId = screen === 'prediksi' && !cowId
+      ? 'mawar'
+      : cowId
+      ? cowId.replace('#', '').trim()
+      : selectedCowId;
+    setSelectedCowId(nextCowId);
+    sessionStorage.setItem('mowtitis-cow-id', nextCowId);
+    sessionStorage.setItem('mowtitis-screen', screen);
     void recordActivity(user.id, 'navigate', { screen });
     setCurrentScreen(screen);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (checkingSession) {
+    if (sessionStorage.getItem('mowtitis-screen')) return null;
     return (
-      <main className="session-skeleton" aria-label="Memuat sesi">
+      <main className="session-skeleton" aria-label="Memuat login">
         <section className="session-skeleton-card">
           <div className="session-skeleton-brand">
             <span className="skeleton session-skeleton-logo" />

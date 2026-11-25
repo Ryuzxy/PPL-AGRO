@@ -15,8 +15,48 @@ export default function ProfilSapiDetail({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'bio' | 'kandang' | 'nutrisi'>('bio');
+  const [editOpen, setEditOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const { cows: dbCows, loading } = useCows();
+  const { cows: dbCows, loading, updateCow } = useCows();
+
+  const [editForm, setEditForm] = useState({
+    nama: '', eartag: '', ras: '', fase_laktasi: '', lokasi_kandang: '',
+    status_kesehatan: '', berat_badan: '', skor_bcs: '', rerata_produksi_harian: '', catatan: '',
+  });
+
+  const openEdit = () => {
+    if (!selectedCow) return;
+    const raw = selectedCow.raw;
+    setEditForm({
+      nama: raw.nama || '', eartag: raw.eartag || '', ras: raw.ras || '',
+      fase_laktasi: raw.fase_laktasi || '', lokasi_kandang: raw.lokasi_kandang || '',
+      status_kesehatan: raw.status_kesehatan || '', berat_badan: String(raw.berat_badan || ''),
+      skor_bcs: String(raw.skor_bcs || ''), rerata_produksi_harian: String(raw.rerata_produksi_harian || ''),
+      catatan: raw.catatan || '',
+    });
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!selectedCow || !editForm.nama.trim() || !editForm.eartag.trim()) return;
+    setIsSaving(true);
+    try {
+      await updateCow(selectedCow.dbId, {
+        nama: editForm.nama.trim(), eartag: editForm.eartag.trim(), ras: editForm.ras.trim(),
+        fase_laktasi: editForm.fase_laktasi.trim(), lokasi_kandang: editForm.lokasi_kandang.trim(),
+        status_kesehatan: editForm.status_kesehatan.trim(), berat_badan: Number(editForm.berat_badan) || 0,
+        skor_bcs: Number(editForm.skor_bcs) || 0, rerata_produksi_harian: Number(editForm.rerata_produksi_harian) || 0,
+        catatan: editForm.catatan.trim(),
+      });
+      setEditOpen(false);
+      showToast('Profil sapi diperbarui.');
+    } catch {
+      showToast('Profil sapi gagal diperbarui.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Find selected cow from Supabase or fallback
   const selectedCow = useMemo(() => {
@@ -123,6 +163,13 @@ export default function ProfilSapiDetail({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={openEdit}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-[#dee8ff] hover:bg-[#f0f3ff] text-[#111c2d] text-xs font-bold transition-all shadow-xs active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[16px]">edit</span>
+              <span className="hidden sm:inline">Edit Profil</span>
+            </button>
             <button
               onClick={() => onNavigate?.('riwayat_sapi', tag.replace('#', ''))}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#1b5e20] hover:bg-[#00450d] text-white text-xs font-bold transition-all shadow-sm active:scale-95"
@@ -411,6 +458,59 @@ export default function ProfilSapiDetail({
           </div>
         </main>
       </div>
+
+      {editOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={(event) => { event.preventDefault(); void saveEdit(); }}
+            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl p-5 sm:p-6"
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-lg font-extrabold text-[#111c2d]">Edit Profil Sapi</h2>
+                <p className="text-xs text-[#717a6d]">Perbarui data dasar dan produksi sapi.</p>
+              </div>
+              <button type="button" onClick={() => setEditOpen(false)} className="w-9 h-9 rounded-full hover:bg-[#f0f3ff] text-[#41493e]">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {([
+                ['nama', 'Nama sapi'], ['eartag', 'Ear tag'], ['ras', 'Ras'], ['fase_laktasi', 'Fase laktasi'],
+                ['lokasi_kandang', 'Lokasi kandang'], ['status_kesehatan', 'Status kesehatan'],
+                ['berat_badan', 'Berat badan (kg)'], ['skor_bcs', 'Skor BCS'], ['rerata_produksi_harian', 'Produksi harian (L)'],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="text-xs font-bold text-[#41493e]">
+                  {label}
+                  <input
+                    value={editForm[key]}
+                    onChange={(event) => setEditForm((form) => ({ ...form, [key]: event.target.value }))}
+                    type={['berat_badan', 'skor_bcs', 'rerata_produksi_harian'].includes(key) ? 'number' : 'text'}
+                    step={key === 'skor_bcs' ? '0.01' : '0.1'}
+                    required={key === 'nama' || key === 'eartag'}
+                    className="mt-1 w-full rounded-xl border border-[#dee8ff] bg-[#f9f9ff] px-3 py-2.5 font-medium outline-none focus:border-[#1b5e20]"
+                  />
+                </label>
+              ))}
+            </div>
+            <label className="block mt-3 text-xs font-bold text-[#41493e]">
+              Catatan
+              <textarea
+                value={editForm.catatan}
+                onChange={(event) => setEditForm((form) => ({ ...form, catatan: event.target.value }))}
+                rows={3}
+                className="mt-1 w-full rounded-xl border border-[#dee8ff] bg-[#f9f9ff] px-3 py-2.5 font-medium outline-none focus:border-[#1b5e20]"
+              />
+            </label>
+            <div className="flex justify-end gap-2 mt-5">
+              <button type="button" onClick={() => setEditOpen(false)} className="px-4 py-2.5 rounded-xl border border-[#dee8ff] text-xs font-bold">Batal</button>
+              <button type="submit" disabled={isSaving} className="px-5 py-2.5 rounded-xl bg-[#1b5e20] text-white text-xs font-bold disabled:opacity-50">
+                {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toastMessage && (
